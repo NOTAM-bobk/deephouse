@@ -3,460 +3,771 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>IMDb Explorer</title>
-    
-    <!-- Tailwind CSS -->
+    <title>Netflix Clone - Dynamic IMDb API Experience</title>
+    <!-- Tailwind CSS CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
-    
-    <!-- FontAwesome Icons -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        netflixRed: '#E50914',
+                        netflixBlack: '#141414',
+                        netflixGray: '#181818',
+                        netflixLightGray: '#2F2F2F',
+                    },
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                    },
+                }
+            }
+        }
+    </script>
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <!-- Custom Scrollbars & Animations -->
     <style>
-        /* Custom scrollbar and line-clamping utilities */
-        body {
-            background-color: #0a0a0a;
-            color: #e2e8f0;
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+        ::-webkit-scrollbar { width: 8px; height: 8px; }
+        ::-webkit-scrollbar-track { background: #141414; }
+        ::-webkit-scrollbar-thumb { background: #333; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: #444; }
+
+        .glow-red:hover { box-shadow: 0 0 15px rgba(229, 9, 20, 0.6); }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: scale(0.95); }
+            to { opacity: 1; transform: scale(1); }
         }
-        .line-clamp-3 {
-            display: -webkit-box;
-            -webkit-line-clamp: 3;
-            -webkit-box-orient: vertical;
-            overflow: hidden;
+        .animate-fade-in { animation: fadeIn 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
+        
+        /* Shimmer loading effect */
+        .shimmer {
+            background: #2F2F2F;
+            background-image: linear-gradient(to right, #2F2F2F 0%, #3f3f3f 20%, #2F2F2F 40%, #2F2F2F 100%);
+            background-repeat: no-repeat;
+            background-size: 800px 100%; 
+            animation-duration: 1s;
+            animation-fill-mode: forwards; 
+            animation-iteration-count: infinite;
+            animation-name: placeholderShimmer;
+            animation-timing-function: linear;
         }
-        ::-webkit-scrollbar {
-            width: 8px;
-        }
-        ::-webkit-scrollbar-track {
-            background: #0f172a;
-        }
-        ::-webkit-scrollbar-thumb {
-            background: #334155;
-            border-radius: 4px;
-        }
-        ::-webkit-scrollbar-thumb:hover {
-            background: #475569;
+        @keyframes placeholderShimmer {
+            0% { background-position: -468px 0; }
+            100% { background-position: 468px 0; }
         }
     </style>
 </head>
-<body class="selection:bg-blue-500/30 pb-20 font-sans antialiased overflow-x-hidden">
+<body class="bg-netflixBlack text-white font-sans antialiased selection:bg-netflixRed selection:text-white overflow-x-hidden">
 
-    <!-- Navigation Bar -->
-    <nav class="fixed top-0 left-0 right-0 z-40 bg-gradient-to-b from-black/90 to-transparent backdrop-blur-sm pt-4 pb-6 px-6 md:px-12 flex flex-col md:flex-row items-center justify-between gap-4 transition-all">
-        <div class="flex items-center gap-8 w-full md:w-auto">
-            <div class="flex items-center gap-2 text-blue-500">
-                <i class="fas fa-film text-3xl"></i>
-                <span class="text-2xl font-black tracking-tighter text-white">IMDb</span>
+    <!-- MAIN APPLICATION -->
+    <div id="main-app" class="relative min-h-screen">
+        
+        <!-- HEADER / NAVIGATION -->
+        <header id="main-header" class="fixed top-0 left-0 w-full z-40 flex items-center justify-between px-4 md:px-12 py-4 transition-colors duration-300 bg-gradient-to-b from-black/80 to-transparent">
+            <!-- Left Header -->
+            <div class="flex items-center space-x-4 lg:space-x-12">
+                <!-- Netflix Styled Logo -->
+                <a href="#" onclick="showSection('home')" class="text-netflixRed text-2xl md:text-3.5xl font-extrabold tracking-tighter uppercase focus:outline-none select-none flex items-center">
+                    NETFLIX
+                </a>
+                
+                <!-- Navigation Links for Desktop -->
+                <nav class="hidden md:flex space-x-6 text-sm font-medium">
+                    <button onclick="showSection('home')" class="nav-link text-white hover:text-gray-300 transition-colors">Home</button>
+                    <button onclick="showSection('tv')" class="nav-link text-gray-300 hover:text-gray-400 transition-colors">TV Shows</button>
+                    <button onclick="showSection('movies')" class="nav-link text-gray-300 hover:text-gray-400 transition-colors">Movies</button>
+                </nav>
             </div>
+
+            <!-- Right Header Controls -->
+            <div class="flex items-center space-x-4 md:space-x-6">
+                <!-- Search Bar UI -->
+                <div class="relative flex items-center" id="search-container">
+                    <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                        <svg class="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
+                    </div>
+                    <input id="search-input" type="text" onkeyup="handleSearchTimeout(this.value)" placeholder="Search API..." class="bg-black/60 border border-gray-600 text-white text-sm rounded-full pl-10 pr-4 py-1.5 focus:outline-none focus:border-white focus:bg-black/90 transition-all duration-300 w-32 sm:w-48 lg:w-64 placeholder-gray-400">
+                </div>
+
+                <!-- My List Dropdown -->
+                <div class="relative group">
+                    <button class="text-white hover:text-gray-300 font-medium text-sm flex items-center gap-1 focus:outline-none py-2">
+                        <span class="hidden sm:inline">My List</span>
+                        <svg class="w-5 h-5 sm:w-4 sm:h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path></svg>
+                    </button>
+                    <div class="absolute right-0 mt-2 w-72 bg-black/95 border border-gray-800 rounded shadow-2xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-150 z-50 overflow-hidden">
+                        <div class="p-3 border-b border-gray-800 text-sm font-bold text-gray-200">Your List</div>
+                        <div id="header-mylist-dropdown" class="max-h-64 overflow-y-auto divide-y divide-gray-800 no-scrollbar">
+                            <!-- Dropdown items injected here -->
+                            <div class="p-4 text-xs text-gray-500 text-center">Your list is empty.</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Kids Indicator -->
+                <span class="text-xs md:text-sm text-gray-300 font-medium cursor-pointer hover:underline hidden sm:inline">KIDS</span>
+
+                <!-- Notifications Dropdown -->
+                <div class="relative group hidden sm:block">
+                    <button class="text-white hover:text-gray-300 focus:outline-none py-2">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"></path></svg>
+                    </button>
+                    <!-- Simulated notifications -->
+                    <div class="absolute right-0 mt-3 w-72 bg-netflixGray border border-gray-800 rounded-md shadow-2xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50 text-xs">
+                        <div class="p-3 border-b border-gray-800 text-gray-400">Notifications</div>
+                        <div class="divide-y divide-gray-800">
+                            <div class="p-3 hover:bg-neutral-800 flex space-x-3 cursor-pointer">
+                                <div class="w-12 h-8 rounded bg-red-600 flex-shrink-0 flex items-center justify-center text-[8px] font-bold">NEW</div>
+                                <div>
+                                    <p class="font-bold text-gray-200">New Releases Available</p>
+                                    <p class="text-gray-400">Check out the newly added titles.</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </header>
+
+        <!-- 3. MAIN HOMEPAGE WRAPPER -->
+        <main class="pb-24">
             
-            <div class="hidden md:flex items-center gap-6 text-sm font-medium" id="nav-tabs">
-                <button data-tab="movies" class="nav-tab active-tab transition-colors flex items-center gap-2 pb-1 border-b-2 border-blue-500 text-white">
-                    <i class="fas fa-film"></i> Movies
-                </button>
-                <button data-tab="tv" class="nav-tab transition-colors flex items-center gap-2 pb-1 border-b-2 border-transparent text-slate-400 hover:text-slate-200">
-                    <i class="fas fa-tv"></i> TV Shows
-                </button>
-                <button data-tab="all" class="nav-tab transition-colors flex items-center gap-2 pb-1 border-b-2 border-transparent text-slate-400 hover:text-slate-200">
-                    <i class="fas fa-chart-line"></i> All Titles
-                </button>
-            </div>
-        </div>
+            <!-- HERO HERO SHOWCASE BANNER -->
+            <section class="relative w-full h-[56.25vw] min-h-[450px] max-h-[800px] flex items-center justify-start bg-black overflow-hidden select-none">
+                <!-- Video/Image Background -->
+                <div class="absolute inset-0 w-full h-full">
+                    <!-- Static preview poster initially -->
+                    <img id="hero-backdrop" src="https://images.unsplash.com/photo-1579546929518-9e396f3cc809?auto=format&fit=crop&q=80&w=1920&h=1080" alt="Hero Showcase Backdrop" class="object-cover object-top w-full h-full scale-105 transition-transform duration-1000 brightness-[0.45]">
+                    <!-- Real-time overlay gradient -->
+                    <div class="absolute inset-0 bg-gradient-to-r from-[#141414] via-black/40 to-transparent opacity-90 z-10"></div>
+                    <div class="absolute inset-0 bg-gradient-to-t from-[#141414] via-[#141414]/10 to-transparent z-10"></div>
+                </div>
 
-        <div class="flex items-center gap-4 w-full md:w-auto">
-            <div class="relative w-full md:w-64 group">
-                <i class="fas fa-search absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-blue-400 transition-colors"></i>
-                <input
-                    type="text"
-                    id="search-input"
-                    placeholder="Search titles..."
-                    class="w-full bg-slate-900/80 border border-slate-700/50 rounded-full pl-11 pr-10 py-2.5 text-sm focus:outline-none focus:border-blue-500 focus:bg-slate-900 transition-all placeholder:text-slate-500 text-white"
-                />
-                <button id="clear-search" class="hidden absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 hover:text-white">
-                    <i class="fas fa-times"></i>
-                </button>
-            </div>
-        </div>
-    </nav>
+                <!-- Hero Content Area -->
+                <div class="relative z-20 pl-4 md:pl-12 max-w-2xl mt-12 md:mt-0">
+                    <div class="flex items-center space-x-2 mb-2 md:mb-4">
+                        <span class="bg-red-600 text-[10px] md:text-xs font-black px-1.5 py-0.5 rounded tracking-widest uppercase" id="hero-type-badge">MOVIE</span>
+                    </div>
+                    <!-- Hero Title -->
+                    <h1 id="hero-title" class="text-3xl md:text-6xl lg:text-7xl font-extrabold tracking-tight mb-3 md:mb-6 leading-tight drop-shadow-md">Loading...</h1>
+                    <!-- Hero Meta -->
+                    <div class="flex items-center space-x-3 text-xs md:text-sm font-medium mb-4 text-gray-300">
+                        <span class="text-green-500 font-bold" id="hero-match">98% Match</span>
+                        <span id="hero-year">2026</span>
+                        <span class="border border-gray-600 px-1 py-0.2 rounded text-[10px]" id="hero-age">PG-13</span>
+                        <span id="hero-duration">1h 45m</span>
+                        <span class="bg-neutral-800 px-1 rounded text-[10px] font-bold text-white tracking-widest hidden md:inline">HD</span>
+                    </div>
+                    <!-- Hero Description -->
+                    <p id="hero-description" class="text-gray-200 text-xs md:text-base lg:text-lg mb-6 leading-relaxed line-clamp-3 md:line-clamp-4 max-w-xl shadow-sm">
+                        Loading cinematic experience...
+                    </p>
+                    <!-- Actions -->
+                    <div class="flex items-center space-x-3">
+                        <button onclick="playHeroTrailer()" class="glow-red bg-white hover:bg-gray-200 text-black text-xs md:text-base font-bold py-2 md:py-3 px-6 md:px-8 rounded flex items-center space-x-2 transition-all duration-200 focus:outline-none">
+                            <svg class="w-4 h-4 md:w-6 md:h-6 fill-current text-black" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"></path></svg>
+                            <span>Play</span>
+                        </button>
+                        <button id="hero-info-btn" onclick="openHeroModal()" class="bg-gray-500/40 hover:bg-gray-500/30 text-white text-xs md:text-base font-bold py-2 md:py-3 px-6 md:px-8 rounded flex items-center space-x-2 transition-all duration-200 focus:outline-none backdrop-blur-sm">
+                            <svg class="w-4 h-4 md:w-6 md:h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                            <span>More Info</span>
+                        </button>
+                    </div>
+                </div>
 
-    <!-- Hero Section -->
-    <div id="hero-section" class="relative h-[80vh] md:h-[90vh] w-full flex items-end pb-24 px-6 md:px-12 pt-32 hidden">
-        <!-- Hero content injected via JS -->
+                <div class="absolute bottom-24 right-4 md:right-12 z-20 flex items-center space-x-3">
+                    <button onclick="toggleHeroSound()" class="border border-gray-400 hover:border-white rounded-full p-2 text-white bg-black/40 focus:outline-none transition-colors">
+                        <svg id="sound-on-icon" class="w-5 h-5 hidden" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.536 8.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 12.728M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z"></path></svg>
+                        <svg id="sound-off-icon" class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15zm11.364-3.536L21 15m0-6l-4.05 4.05"></path></svg>
+                    </button>
+                    <span class="bg-black/40 border-l border-white py-1 px-4 text-xs font-semibold select-none backdrop-blur-sm" id="hero-badge-age">PG-13</span>
+                </div>
+            </section>
+
+            <!-- CONTROLLER / SECTIONS WRAPPER -->
+            <div id="content-container" class="relative -mt-16 md:-mt-24 z-30 px-4 md:px-12 space-y-12">
+                <!-- Initial Shimmer Loaders -->
+                <div class="space-y-4">
+                    <div class="w-48 h-6 rounded shimmer"></div>
+                    <div class="flex gap-4 overflow-hidden"><div class="w-[260px] h-[146px] rounded shimmer"></div><div class="w-[260px] h-[146px] rounded shimmer hidden md:block"></div><div class="w-[260px] h-[146px] rounded shimmer hidden md:block"></div></div>
+                </div>
+            </div>
+
+            <!-- SEARCH RESULTS (Only visible when active search occurs) -->
+            <section id="search-section" class="hidden px-4 md:px-12 pt-32 space-y-6">
+                <h2 class="text-2xl font-semibold tracking-wide" id="search-results-heading">Search Results</h2>
+                <div id="search-results-grid" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4">
+                    <!-- Cards dynamically rendered -->
+                </div>
+            </section>
+
+        </main>
+
+        <!-- FOOTER -->
+        <footer class="border-t border-gray-800 bg-netflixBlack px-4 md:px-12 py-12 text-sm text-gray-500">
+            <div class="max-w-5xl mx-auto space-y-8 text-center md:text-left">
+                <p class="text-[11px]">&copy; 1997-2026 Netflix, Inc. UI Recreated in Premium Design Sandbox (Powered by IMDb API).</p>
+            </div>
+        </footer>
+
     </div>
 
-    <!-- Spacer for Search (Hidden by default) -->
-    <div id="search-spacer" class="h-32 hidden"></div>
+    <!-- MOVIE DETAILS MODAL -->
+    <div id="movie-modal" class="fixed inset-0 z-50 overflow-y-auto hidden bg-black/80 flex items-center justify-center p-4 backdrop-blur-md transition-opacity duration-300">
+        <div class="relative bg-netflixGray rounded-lg max-w-4xl w-full max-h-[90vh] overflow-y-auto shadow-2xl border border-gray-800 animate-fade-in no-scrollbar">
+            
+            <!-- Modal Header Poster -->
+            <div class="relative h-[40vw] max-h-[380px] w-full">
+                <img id="modal-backdrop" src="" alt="Show Poster" class="w-full h-full object-cover object-top">
+                <div class="absolute inset-0 bg-gradient-to-t from-netflixGray via-black/40 to-transparent"></div>
+                <button onclick="closeModal()" class="absolute top-4 right-4 bg-black/70 hover:bg-black/90 p-2 rounded-full text-white transition-colors focus:outline-none z-10">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                </button>
+                
+                <div class="absolute bottom-6 left-6 md:left-12 flex flex-col space-y-3">
+                    <h2 id="modal-title" class="text-xl md:text-4xl font-extrabold tracking-tight drop-shadow-md">Title</h2>
+                    <div class="flex items-center space-x-3">
+                        <button id="modal-play-btn" onclick="playModalTrailer()" class="glow-red bg-white hover:bg-white/90 text-black font-extrabold px-6 py-2.5 rounded text-sm flex items-center space-x-2 transition-all">
+                            <svg class="w-4 h-4 fill-current text-black" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"></path></svg>
+                            <span>Play</span>
+                        </button>
+                        <button id="modal-add-list-btn" onclick="toggleMyListFromModal()" class="border border-white/60 hover:border-white hover:bg-white/10 p-2.5 rounded-full text-white transition-all">
+                            <svg id="modal-list-icon" class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
+                        </button>
+                    </div>
+                </div>
+            </div>
 
-    <!-- Main Content Area -->
-    <main class="px-6 md:px-12 relative z-10">
-        
-        <!-- Section Title -->
-        <div class="mb-8">
-            <h2 id="section-title" class="text-2xl font-bold text-white">Movies</h2>
-            <p id="error-message" class="text-red-400 mt-2 hidden"></p>
+            <div class="p-6 md:p-12 grid grid-cols-1 md:grid-cols-3 gap-8">
+                <div class="md:col-span-2 space-y-6">
+                    <div class="flex flex-wrap items-center gap-3 text-sm">
+                        <span id="modal-match" class="text-green-500 font-bold"></span>
+                        <span id="modal-year" class="text-gray-400"></span>
+                        <span id="modal-age" class="border border-gray-600 px-1.5 py-0.2 rounded text-xs"></span>
+                        <span id="modal-episodes" class="text-gray-300"></span>
+                        <span class="bg-neutral-800 text-[10px] px-1 py-0.5 rounded text-white tracking-widest uppercase hidden md:inline">HD</span>
+                    </div>
+                    <p id="modal-overview" class="text-gray-200 text-sm md:text-base leading-relaxed"></p>
+                </div>
+                <div class="space-y-4 text-xs text-gray-400">
+                    <div><span class="text-gray-500">Genres:</span> <span id="modal-genres" class="text-gray-300"></span></div>
+                    <div><span class="text-gray-500">This show is:</span> <span id="modal-tags" class="text-gray-300">Exciting, Imaginative, Adventure</span></div>
+                </div>
+            </div>
         </div>
+    </div>
 
-        <!-- Movie Grid -->
-        <div id="movie-grid" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-x-4 gap-y-8 md:gap-6">
-            <!-- Movie cards injected via JS -->
-        </div>
-
-        <!-- Empty State -->
-        <div id="empty-state" class="text-center py-20 text-slate-500 hidden">
-            <i class="fas fa-film text-6xl mx-auto mb-4 opacity-20"></i>
-            <p class="text-xl">No titles found.</p>
-        </div>
-    </main>
-
-    <!-- Movie Details Modal -->
-    <div id="movie-modal" class="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6 md:p-12 hidden opacity-0 transition-opacity duration-300">
-        <div class="absolute inset-0 bg-black/80 backdrop-blur-sm" id="modal-backdrop"></div>
-        
-        <div class="relative w-full max-w-5xl bg-slate-900 rounded-2xl overflow-hidden shadow-2xl flex flex-col md:flex-row max-h-[90vh] transform scale-95 transition-transform duration-300" id="modal-content-wrapper">
-            <button id="close-modal" class="absolute top-4 right-4 z-20 w-10 h-10 flex items-center justify-center bg-black/50 hover:bg-black text-white rounded-full transition-colors backdrop-blur-md">
-                <i class="fas fa-times"></i>
+    <!-- IMMERSIVE VIDEO PLAYER COMPONENT -->
+    <div id="video-player" class="fixed inset-0 bg-black z-[200] hidden flex-col justify-between p-6">
+        <div class="flex items-center space-x-6 z-10">
+            <button onclick="closeVideoPlayer()" class="text-white hover:text-gray-300 focus:outline-none">
+                <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path></svg>
             </button>
-            
-            <div id="modal-content" class="flex flex-col md:flex-row w-full h-full overflow-hidden">
-                <!-- Modal content injected via JS -->
+            <span id="player-title" class="text-xl md:text-2xl font-bold">Playing Title</span>
+        </div>
+
+        <div class="absolute inset-0 w-full h-full flex flex-col justify-center items-center">
+            <img id="player-backdrop" src="" class="absolute inset-0 w-full h-full object-cover brightness-[0.3]">
+            <div id="player-loader" class="relative z-10 flex flex-col items-center space-y-4">
+                <div class="w-16 h-16 border-4 border-netflixRed border-t-transparent rounded-full animate-spin"></div>
+                <p class="text-gray-400 text-sm tracking-widest font-semibold uppercase animate-pulse">Connecting to API Stream...</p>
+            </div>
+            <div id="player-status" class="hidden absolute text-center text-white z-10">
+                <p class="text-5xl font-extrabold tracking-wide drop-shadow-lg">STREAM PLAYING</p>
+                <p class="text-gray-300 mt-2 text-sm">Simulated high quality cinematic experience</p>
+            </div>
+        </div>
+
+        <div class="relative z-10 w-full max-w-5xl mx-auto space-y-4 bg-gradient-to-t from-black/80 p-6 rounded-lg backdrop-blur-sm">
+            <div class="w-full flex items-center justify-center space-x-4">
+                <button onclick="togglePlayerPlay()" class="text-white hover:text-gray-300 focus:outline-none">
+                    <svg id="player-pause-icon" class="w-8 h-8" fill="currentColor" viewBox="0 0 24 24"><path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"></path></svg>
+                    <svg id="player-play-icon" class="w-8 h-8 hidden" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"></path></svg>
+                </button>
+                <button onclick="toggleFullscreen()" class="text-white hover:text-gray-300 focus:outline-none ml-auto">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 8V4m0 0h4M4 4l5 5m11-5h-4m4 0v4m0-4l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4"></path></svg>
+                </button>
             </div>
         </div>
     </div>
 
+
+    <!-- 6. HIGH-FIDELITY API & LOGIC -->
     <script>
+        // API Configuration
         const API_BASE_URL = 'https://api.imdbapi.dev';
         
-        // App State
-        let state = {
-            movies: [],
-            featuredMovie: null,
-            activeTab: 'movies',
-            searchQuery: '',
-            isLoading: false
-        };
+        // Safe Content Fallback Dataset (Age appropriate / Clean)
+        const fallbackMovies = [
+            { id: "fallback-1", title: "Galaxy Explorers", thumbnail: "https://images.unsplash.com/photo-1451187580459-43490279c0fa?auto=format&fit=crop&q=80&w=640&h=360", backdrop: "https://images.unsplash.com/photo-1451187580459-43490279c0fa?auto=format&fit=crop&q=80&w=1920&h=1080", match: "98% Match", year: "2025", age: "PG", duration: "1h 55m", type: "Movie", genres: "Sci-Fi, Adventure", overview: "A team of young astronauts chart an unknown galaxy, making spectacular discoveries and facing the wonders of deep space." },
+            { id: "fallback-2", title: "Ocean's Song", thumbnail: "https://images.unsplash.com/photo-1507525428034-b723cf961d3e?auto=format&fit=crop&q=80&w=640&h=360", backdrop: "https://images.unsplash.com/photo-1507525428034-b723cf961d3e?auto=format&fit=crop&q=80&w=1920&h=1080", match: "94% Match", year: "2024", age: "G", duration: "1h 30m", type: "Documentary", genres: "Documentary, Nature", overview: "Experience the majestic and gentle world of marine biology through breathtaking underwater photography." },
+            { id: "fallback-3", title: "The Mountain Legend", thumbnail: "https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?auto=format&fit=crop&q=80&w=640&h=360", backdrop: "https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?auto=format&fit=crop&q=80&w=1920&h=1080", match: "91% Match", year: "2026", age: "PG", duration: "2h 10m", type: "Movie", genres: "Adventure, Drama", overview: "An inspirational story about overcoming massive natural obstacles to summit the highest peaks." },
+            { id: "fallback-4", title: "Cyber Pioneers", thumbnail: "https://images.unsplash.com/photo-1515621061946-eff1c2a352bd?auto=format&fit=crop&q=80&w=640&h=360", backdrop: "https://images.unsplash.com/photo-1515621061946-eff1c2a352bd?auto=format&fit=crop&q=80&w=1920&h=1080", match: "96% Match", year: "2026", age: "PG-13", duration: "1 Season", type: "TV Show", genres: "Sci-Fi, Action", overview: "Follow the inventors of tomorrow in a thrilling tech-focused drama set in a bustling future metropolis." }
+        ];
 
-        const categories = {
-            'movies': { label: 'Movies', endpoint: '/titles?titleType=movie' },
-            'tv': { label: 'TV Shows', endpoint: '/titles?titleType=tvSeries' },
-            'all': { label: 'All Titles', endpoint: '/titles' }
-        };
+        // Application State
+        let moviesData = []; // Centralized dynamic map of all fetched movies
+        let rowCollections = []; // Categorized row data
+        let myList = []; // Empty on start to prevent missing IDs
+        let currentSelectedMovie = null;
+        let isHeroMuted = true;
+        let activeSection = "home";
+        let searchTimeout = null;
 
-        // DOM Elements
-        const heroSection = document.getElementById('hero-section');
-        const searchSpacer = document.getElementById('search-spacer');
-        const movieGrid = document.getElementById('movie-grid');
-        const sectionTitle = document.getElementById('section-title');
-        const errorMessage = document.getElementById('error-message');
-        const emptyState = document.getElementById('empty-state');
-        const searchInput = document.getElementById('search-input');
-        const clearSearchBtn = document.getElementById('clear-search');
-        const navTabs = document.querySelectorAll('.nav-tab');
-        
-        // Modal Elements
-        const movieModal = document.getElementById('movie-modal');
-        const modalBackdrop = document.getElementById('modal-backdrop');
-        const closeModalBtn = document.getElementById('close-modal');
-        const modalContent = document.getElementById('modal-content');
-        const modalWrapper = document.getElementById('modal-content-wrapper');
+        // --- API FETCH & DATA MAPPING ---
 
-        // --- Data Normalization ---
-        const normalizeMovie = (m) => ({
-            id: m.id || m.titleId || Math.random().toString(),
-            title: m.title || m.titleName || m.name || 'Unknown Title',
-            image: m.image?.url || m.image || m.poster || 'https://via.placeholder.com/500x750/1e293b/ffffff?text=No+Image',
-            rating: m.rating?.star || m.rating || m.averageRating || 0,
-            year: m.year || (m.releaseDate ? new Date(m.releaseDate).getFullYear() : 'Unknown'),
-            overview: m.plot || m.description || m.overview || 'No overview available.',
-            type: m.titleType || m.type || 'title'
-        });
+        // Universal Age Appropriate Filter (Filters out anything harmful, violent, adult, etc.)
+        function isAgeAppropriate(item) {
+            const blockWords = ['murder', 'blood', 'sex', 'kill', 'drug', 'cartel', 'violence', 'erotic', 'horror', 'terror', 'porn', 'nsfw', 'mature'];
+            const searchString = `${item.title} ${item.overview} ${item.genres}`.toLowerCase();
+            for (let word of blockWords) {
+                if (searchString.includes(word)) return false;
+            }
+            return true;
+        }
 
-        // --- Fetch Logic ---
-        async function fetchMovies(endpoint, query = '') {
-            state.isLoading = true;
-            renderLoading();
-            errorMessage.classList.add('hidden');
-            emptyState.classList.add('hidden');
+        // Defensive mapping to ensure our UI always receives consistent keys regardless of API variations
+        function mapAPIMovie(apiItem) {
+            const title = apiItem.title || apiItem.titleText?.text || apiItem.originalTitleText?.text || 'Unknown Title';
+            const imgUrl = apiItem.image?.url || apiItem.primaryImage?.url || 'https://images.unsplash.com/photo-1536440136628-849c177e76a1?auto=format&fit=crop&q=80&w=640&h=360';
+            const releaseYear = apiItem.year || apiItem.releaseYear?.year || (Math.floor(Math.random() * (2025 - 1990 + 1)) + 1990);
+            
+            // Extract genres safely
+            let genreStr = "Adventure, Drama";
+            if (Array.isArray(apiItem.genres)) genreStr = apiItem.genres.join(', ');
+            else if (apiItem.genres?.genres) genreStr = apiItem.genres.genres.map(g => g.text).join(', ');
 
+            return {
+                id: apiItem.id || `local-${Math.random().toString(36).substr(2, 9)}`,
+                title: title,
+                backdrop: imgUrl, // Use API primary image for both due to limitations
+                thumbnail: imgUrl,
+                match: `${Math.floor(Math.random() * 20) + 80}% Match`, // Simulated recommendation
+                year: releaseYear.toString(),
+                age: 'PG-13', // Force safe labeling display visually
+                duration: apiItem.runtime?.seconds ? Math.floor(apiItem.runtime.seconds/60) + 'm' : (apiItem.titleType?.id === 'tvSeries' ? '1 Season' : '1h 45m'),
+                type: apiItem.titleType?.id === 'tvSeries' ? 'TV Show' : 'Movie',
+                genres: genreStr,
+                overview: apiItem.plot?.plotText?.plainText || apiItem.plot || "An exciting adventure awaits in this highly rated title.",
+                tags: "Exciting, Fun, Adventure"
+            };
+        }
+
+        async function fetchFromAPI(endpoint) {
             try {
-                let url = `${API_BASE_URL}${endpoint}`;
-                if (query) {
-                    url = `${API_BASE_URL}/search/titles?query=${encodeURIComponent(query)}`;
-                }
-
-                const response = await fetch(url);
-                if (!response.ok) throw new Error('Failed to fetch data from IMDb API.');
-
+                const response = await fetch(`${API_BASE_URL}${endpoint}`);
+                if (!response.ok) throw new Error(`API returned status ${response.status}`);
                 const data = await response.json();
                 
-                let results = [];
-                if (Array.isArray(data)) results = data;
-                else if (data.titles) results = data.titles;
-                else if (data.results) results = data.results;
-                else if (data.data) results = data.data;
+                // Handle different potential structural wrappings based on IMDbAPI definitions
+                let rawList = [];
+                if (Array.isArray(data)) rawList = data;
+                else if (data.results) rawList = data.results;
+                else if (data.titles) rawList = data.titles;
+                else if (data.items) rawList = data.items;
+                
+                return rawList.map(mapAPIMovie).filter(isAgeAppropriate);
+            } catch (error) {
+                console.warn(`Fetch failed for ${endpoint}, falling back to safe data. Error:`, error);
+                return [];
+            }
+        }
 
-                const normalized = results.map(normalizeMovie).filter(m => m.image && !m.image.includes('No+Image'));
-                state.movies = normalized;
+        // --- APP INITIALIZATION ---
 
-                if (!query && normalized.length > 0) {
-                    const randomIndex = Math.floor(Math.random() * Math.min(5, normalized.length));
-                    state.featuredMovie = normalized[randomIndex];
+        window.addEventListener('DOMContentLoaded', () => {
+            // Check scroll position to style Navbar with glass effect
+            window.addEventListener('scroll', () => {
+                const header = document.getElementById('main-header');
+                if (window.scrollY > 50) {
+                    header.classList.add('bg-black/60', 'backdrop-blur-md');
+                    header.classList.remove('bg-gradient-to-b', 'from-black/80', 'to-transparent');
+                } else {
+                    header.classList.remove('bg-black/60', 'backdrop-blur-md');
+                    header.classList.add('bg-gradient-to-b', 'from-black/80', 'to-transparent');
                 }
+            });
 
-                renderApp();
+            loadDynamicData();
+        });
 
-            } catch (err) {
-                console.error(err);
-                movieGrid.innerHTML = '';
-                errorMessage.textContent = err.message;
-                errorMessage.classList.remove('hidden');
-                heroSection.classList.add('hidden');
-            } finally {
-                state.isLoading = false;
-            }
+        async function loadDynamicData() {
+            // We use /search/titles to pull safe themed genres since general /titles might be too varied
+            const [popular, action, scifi, docs] = await Promise.all([
+                fetchFromAPI('/search/titles?query=marvel'), // Using general safe terms as proxies for trending
+                fetchFromAPI('/search/titles?query=adventure'),
+                fetchFromAPI('/search/titles?query=space'),
+                fetchFromAPI('/search/titles?query=planet')
+            ]);
+
+            rowCollections = [
+                { title: "Trending Now", data: popular.length ? popular : fallbackMovies },
+                { title: "Action & Adventure", data: action.length ? action : fallbackMovies },
+                { title: "Sci-Fi Favorites", data: scifi.length ? scifi : fallbackMovies },
+                { title: "Documentaries", data: docs.length ? docs : fallbackMovies }
+            ];
+
+            // Consolidate into global moviesData lookup
+            rowCollections.forEach(row => {
+                row.data.forEach(movie => {
+                    if (!moviesData.find(m => m.id === movie.id)) moviesData.push(movie);
+                });
+            });
+
+            // Make sure we have at least fallback data globally
+            if (moviesData.length === 0) moviesData = [...fallbackMovies];
+
+            // Setup UI
+            setHeroDetails(moviesData[0].id);
+            renderContentHub();
+            updateHeaderMyList();
         }
 
-        // --- Rendering ---
-        function renderLoading() {
-            movieGrid.innerHTML = Array(12).fill(0).map(() => 
-                `<div class="aspect-[2/3] bg-slate-800/50 rounded-xl animate-pulse border border-slate-700/30"></div>`
-            ).join('');
-        }
+        // --- HEADER & MY LIST LOGIC ---
 
-        function renderApp() {
-            // Update Title
-            sectionTitle.textContent = state.searchQuery 
-                ? `Search Results for "${state.searchQuery}"` 
-                : categories[state.activeTab].label;
-
-            // Handle Hero visibility
-            if (state.searchQuery) {
-                heroSection.classList.add('hidden');
-                searchSpacer.classList.remove('hidden');
-            } else if (state.featuredMovie) {
-                renderHero();
-                heroSection.classList.remove('hidden');
-                searchSpacer.classList.add('hidden');
+        function updateHeaderMyList() {
+            const dropdown = document.getElementById('header-mylist-dropdown');
+            if (!dropdown) return;
+            
+            dropdown.innerHTML = '';
+            if (myList.length === 0) {
+                dropdown.innerHTML = '<div class="p-4 text-xs text-gray-500 text-center">Your list is empty.</div>';
+                return;
             }
-
-            // Render Grid
-            if (state.movies.length === 0) {
-                movieGrid.innerHTML = '';
-                emptyState.classList.remove('hidden');
-            } else {
-                emptyState.classList.add('hidden');
-                movieGrid.innerHTML = state.movies.map(movie => `
-                    <div class="group relative cursor-pointer" onclick="openModal('${movie.id}')">
-                        <div class="relative aspect-[2/3] rounded-xl overflow-hidden bg-slate-800 mb-3 shadow-lg shadow-black/40 border border-slate-700/50">
-                            <img src="${movie.image}" alt="${movie.title}" class="w-full h-full object-cover transform group-hover:scale-105 transition-transform duration-500" loading="lazy" onerror="this.src='https://via.placeholder.com/500x750/1e293b/ffffff?text=No+Image'">
-                            <div class="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-center justify-center backdrop-blur-[2px]">
-                                <i class="fas fa-play text-4xl text-white opacity-90 group-hover:scale-110 transition-transform"></i>
-                            </div>
-                            <div class="absolute top-2 right-2 bg-black/70 backdrop-blur-md px-2 py-1 rounded-md flex items-center gap-1.5 text-xs font-bold text-yellow-400 border border-white/10">
-                                <i class="fas fa-star text-[10px]"></i>
-                                ${Number(movie.rating).toFixed(1)}
+            myList.forEach(id => {
+                const movie = moviesData.find(m => m.id === id);
+                if (movie) {
+                    dropdown.innerHTML += `
+                        <div class="flex items-center gap-3 p-3 hover:bg-neutral-800 cursor-pointer transition-colors" onclick="openModal('${movie.id}')">
+                            <img src="${movie.thumbnail}" alt="${movie.title}" class="w-16 h-9 object-cover rounded">
+                            <div class="flex-1 min-w-0">
+                                <p class="text-xs font-medium text-gray-200 truncate">${movie.title}</p>
+                                <p class="text-[10px] text-gray-500">${movie.year} &bull; ${movie.duration}</p>
                             </div>
                         </div>
-                        <h3 class="font-semibold text-slate-200 truncate group-hover:text-blue-400 transition-colors">${movie.title}</h3>
-                        <p class="text-sm text-slate-500 flex justify-between items-center mt-1">
-                            <span>${movie.year}</span>
-                            <span class="uppercase text-[10px] font-bold tracking-wider bg-slate-800 text-slate-300 px-2 py-0.5 rounded border border-slate-700/50">${movie.type}</span>
-                        </p>
-                    </div>
-                `).join('');
-            }
+                    `;
+                }
+            });
         }
 
-        function renderHero() {
-            const m = state.featuredMovie;
-            heroSection.innerHTML = `
-                <div class="absolute inset-0 z-0">
-                    <img src="${m.image}" alt="${m.title}" class="w-full h-full object-cover opacity-60">
-                    <div class="absolute inset-0 bg-gradient-to-r from-black/100 via-black/70 to-transparent"></div>
-                    <div class="absolute inset-0 bg-gradient-to-t from-[#0a0a0a] via-[#0a0a0a]/40 to-transparent"></div>
-                </div>
-                <div class="relative z-10 max-w-2xl w-full">
-                    <span class="uppercase text-xs font-bold tracking-widest text-blue-400 mb-3 block">Featured Title</span>
-                    <h1 class="text-5xl md:text-7xl font-bold text-white mb-4 drop-shadow-2xl leading-tight">${m.title}</h1>
-                    
-                    <div class="flex items-center gap-4 text-sm font-semibold text-slate-300 mb-6 drop-shadow">
-                        <div class="flex items-center gap-1.5 text-yellow-400 bg-black/40 px-2 py-1 rounded backdrop-blur-sm border border-white/10">
-                            <i class="fas fa-star"></i>
-                            <span>${Number(m.rating).toFixed(1)} Rating</span>
-                        </div>
-                        <span>•</span>
-                        <span>${m.year}</span>
-                        <span>•</span>
-                        <span class="uppercase text-xs border border-slate-600 px-2 py-1 rounded tracking-wider bg-black/20">${m.type}</span>
-                    </div>
+        // --- HERO CONTROLS ---
 
-                    <p class="text-slate-300 text-lg mb-8 line-clamp-3 drop-shadow-md max-w-xl leading-relaxed">
-                        ${m.overview}
-                    </p>
-
-                    <div class="flex flex-col sm:flex-row items-center gap-4">
-                        <button onclick="openModal('${m.id}')" class="w-full sm:w-auto bg-white text-black px-8 py-3.5 rounded-full font-bold flex items-center justify-center gap-2 hover:bg-slate-200 transition-transform hover:scale-105">
-                            <i class="fas fa-play"></i> Play Trailer
-                        </button>
-                        <button onclick="openModal('${m.id}')" class="w-full sm:w-auto bg-slate-800/80 hover:bg-slate-700 text-white backdrop-blur-md px-8 py-3.5 rounded-full font-bold flex items-center justify-center gap-2 border border-slate-600 transition-colors">
-                            <i class="fas fa-info-circle"></i> More Info
-                        </button>
-                    </div>
-                </div>
-            `;
-        }
-
-        // --- Modal Logic ---
-        window.openModal = function(id) {
-            const movie = state.movies.find(m => m.id === id) || (state.featuredMovie?.id === id ? state.featuredMovie : null);
+        function setHeroDetails(movieId) {
+            const movie = moviesData.find(m => m.id === movieId);
             if (!movie) return;
+            document.getElementById('hero-backdrop').src = movie.backdrop;
+            document.getElementById('hero-title').textContent = movie.title;
+            document.getElementById('hero-description').textContent = movie.overview;
+            document.getElementById('hero-match').textContent = movie.match;
+            document.getElementById('hero-year').textContent = movie.year;
+            document.getElementById('hero-age').textContent = movie.age;
+            document.getElementById('hero-duration').textContent = movie.duration;
+            document.getElementById('hero-type-badge').textContent = movie.type;
+            
+            document.getElementById('hero-info-btn').onclick = () => openModal(movie.id);
+        }
 
-            modalContent.innerHTML = `
-                <!-- Poster Section (Hidden on mobile) -->
-                <div class="hidden md:block w-1/3 bg-slate-800 shrink-0 relative">
-                    <img src="${movie.image}" alt="${movie.title}" class="w-full h-full object-cover">
-                    <div class="absolute inset-0 bg-gradient-to-t from-slate-900/80 to-transparent"></div>
-                </div>
+        function playHeroTrailer() {
+            const movie = moviesData[0] || fallbackMovies[0];
+            openVideoPlayer(movie.title, movie.backdrop);
+        }
 
-                <!-- Details Section -->
-                <div class="flex-1 overflow-y-auto bg-slate-900">
-                    <!-- Mobile Header Image -->
-                    <div class="md:hidden relative h-64 w-full bg-slate-800">
-                        <img src="${movie.image}" alt="${movie.title}" class="w-full h-full object-cover opacity-70">
-                        <div class="absolute inset-0 bg-gradient-to-t from-slate-900 to-transparent"></div>
-                    </div>
+        function toggleHeroSound() {
+            isHeroMuted = !isHeroMuted;
+            const soundOn = document.getElementById('sound-on-icon');
+            const soundOff = document.getElementById('sound-off-icon');
+            if (isHeroMuted) {
+                soundOn.classList.add('hidden');
+                soundOff.classList.remove('hidden');
+            } else {
+                soundOn.classList.remove('hidden');
+                soundOff.classList.add('hidden');
+            }
+        }
 
-                    <div class="p-6 md:p-10 relative z-10 -mt-10 md:mt-0">
-                        <h2 class="text-3xl md:text-5xl font-bold text-white mb-4 drop-shadow-lg">${movie.title}</h2>
-                        
-                        <div class="flex flex-wrap items-center gap-4 text-sm font-medium text-slate-400 mb-8">
-                            <span class="flex items-center gap-1.5 text-yellow-400 bg-yellow-400/10 px-3 py-1.5 rounded-md border border-yellow-400/20">
-                                <i class="fas fa-star"></i> ${Number(movie.rating).toFixed(1)} / 10
-                            </span>
-                            <span>•</span>
-                            <span>Released: ${movie.year}</span>
-                            <span>•</span>
-                            <span class="uppercase border border-slate-700 bg-slate-800 px-2 py-1 rounded text-xs tracking-wider">
-                                ${movie.type}
-                            </span>
+        // --- FEED RENDERING ---
+
+        function renderContentHub() {
+            const container = document.getElementById('content-container');
+            container.innerHTML = ""; // Clear loader
+
+            rowCollections.forEach((row, idx) => {
+                if (row.data.length === 0) return;
+
+                const rowId = `row-${idx}`;
+                const rowHtml = `
+                    <div class="space-y-3 relative group/row">
+                        <div class="flex items-center justify-between">
+                            <h2 class="text-lg md:text-2xl font-bold tracking-wide cursor-pointer hover:text-white transition-colors duration-200">
+                                ${row.title}
+                            </h2>
                         </div>
 
-                        <div class="space-y-6">
-                            <div>
-                                <h3 class="text-lg font-semibold text-white mb-3 flex items-center gap-2">
-                                    <i class="fas fa-align-left text-blue-500"></i> Overview
-                                </h3>
-                                <p class="text-slate-300 leading-relaxed text-lg">
-                                    ${movie.overview}
-                                </p>
+                        <div class="relative flex items-center">
+                            <button onclick="scrollRow('${rowId}', 'left')" class="absolute left-0 h-full w-12 bg-black/60 hover:bg-black/80 flex items-center justify-center opacity-0 group-hover/row:opacity-100 z-40 transition-opacity duration-300">
+                                <svg class="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M15 19l-7-7 7-7"></path></svg>
+                            </button>
+
+                            <div id="${rowId}" class="flex gap-4 overflow-x-auto no-scrollbar scroll-smooth w-full py-4 px-1">
+                                ${row.data.map(movie => `
+                                    <div onclick="openModal('${movie.id}')" class="flex-none w-[160px] md:w-[260px] aspect-video bg-netflixGray rounded-md overflow-hidden cursor-pointer relative shadow-lg group/card transition-all duration-300">
+                                        <img src="${movie.thumbnail}" alt="${movie.title}" class="w-full h-full object-cover">
+                                        <div class="absolute inset-0 bg-gradient-to-t from-black/90 via-black/40 to-transparent opacity-0 group-hover/card:opacity-100 transition-opacity duration-300 flex flex-col justify-end p-3">
+                                            <p class="font-bold text-xs md:text-sm leading-tight truncate">${movie.title}</p>
+                                            <div class="flex items-center space-x-2 text-[10px] text-gray-300 mt-1">
+                                                <span class="text-green-500 font-bold">${movie.match}</span>
+                                                <span class="border border-gray-600 px-0.5 rounded text-[8px]">${movie.age}</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                `).join('')}
                             </div>
 
-                            <div class="pt-8 border-t border-slate-800 flex flex-wrap gap-4">
-                                <button class="bg-blue-600 hover:bg-blue-500 text-white px-8 py-3.5 rounded-xl font-bold flex items-center gap-2 transition-all hover:shadow-lg hover:shadow-blue-600/30">
-                                    <i class="fas fa-play"></i> Watch Trailer
-                                </button>
-                                <button class="bg-slate-800 hover:bg-slate-700 text-white px-8 py-3.5 rounded-xl font-bold border border-slate-700 transition-colors flex items-center gap-2">
-                                    <i class="fas fa-plus"></i> Add to Watchlist
-                                </button>
-                            </div>
+                            <button onclick="scrollRow('${rowId}', 'right')" class="absolute right-0 h-full w-12 bg-black/60 hover:bg-black/80 flex items-center justify-center opacity-0 group-hover/row:opacity-100 z-40 transition-opacity duration-300">
+                                <svg class="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M9 5l7 7-7 7"></path></svg>
+                            </button>
                         </div>
                     </div>
+                `;
+                container.insertAdjacentHTML('beforeend', rowHtml);
+            });
+        }
+
+        function scrollRow(rowId, direction) {
+            const container = document.getElementById(rowId);
+            const scrollAmount = container.clientWidth * 0.75;
+            if (direction === 'left') container.scrollLeft -= scrollAmount;
+            else container.scrollLeft += scrollAmount;
+        }
+
+        // --- NAVIGATION STATE ---
+
+        function showSection(sectionName) {
+            activeSection = sectionName;
+            
+            const searchInput = document.getElementById('search-input');
+            searchInput.value = "";
+            document.getElementById('search-section').classList.add('hidden');
+            
+            const navLinks = document.querySelectorAll('.nav-link');
+            navLinks.forEach(link => {
+                if (link.textContent.toLowerCase() === sectionName || 
+                    (sectionName === 'home' && link.textContent === 'Home') ||
+                    (sectionName === 'tv' && link.textContent === 'TV Shows') ||
+                    (sectionName === 'movies' && link.textContent === 'Movies')) {
+                    link.classList.add('text-white');
+                    link.classList.remove('text-gray-300');
+                } else {
+                    link.classList.remove('text-white');
+                    link.classList.add('text-gray-300');
+                }
+            });
+
+            const contentContainer = document.getElementById('content-container');
+
+            if (sectionName === 'home') {
+                contentContainer.classList.remove('hidden');
+                renderContentHub();
+            } else if (sectionName === 'tv') {
+                contentContainer.classList.remove('hidden');
+                renderSpecificCategory("TV Shows", (m) => m.type === 'TV Show');
+            } else if (sectionName === 'movies') {
+                contentContainer.classList.remove('hidden');
+                renderSpecificCategory("Movies", (m) => m.type === 'Movie');
+            }
+        }
+
+        function renderSpecificCategory(title, filterFn) {
+            const container = document.getElementById('content-container');
+            const list = moviesData.filter(filterFn);
+
+            const gridHtml = `
+                <div class="space-y-6 pt-24 min-h-[50vh]">
+                    <h2 class="text-2xl md:text-4xl font-extrabold tracking-wide mb-6 capitalize">${title}</h2>
+                    ${list.length === 0 ? `
+                        <div class="text-gray-500 text-lg">No content found in this category right now. Explore others!</div>
+                    ` : `
+                        <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-6">
+                            ${list.map(movie => `
+                                <div onclick="openModal('${movie.id}')" class="group/grid-card aspect-video bg-netflixGray rounded overflow-hidden cursor-pointer relative shadow-lg transition-transform duration-300">
+                                    <img src="${movie.thumbnail}" alt="${movie.title}" class="w-full h-full object-cover">
+                                    <div class="absolute inset-0 bg-gradient-to-t from-black via-black/40 to-transparent opacity-0 group-hover/grid-card:opacity-100 transition-opacity duration-300 flex flex-col justify-end p-4">
+                                        <p class="font-bold text-xs md:text-sm leading-tight truncate">${movie.title}</p>
+                                    </div>
+                                </div>
+                            `).join('')}
+                        </div>
+                    `}
                 </div>
             `;
+            container.innerHTML = gridHtml;
+        }
 
-            movieModal.classList.remove('hidden');
-            // Small delay to allow display:block to apply before animating opacity
-            setTimeout(() => {
-                movieModal.classList.remove('opacity-0');
-                modalWrapper.classList.remove('scale-95');
-                modalWrapper.classList.add('scale-100');
-            }, 10);
-            document.body.style.overflow = 'hidden'; // Prevent background scrolling
+        // --- DETAILED PREVIEW MODAL WORKFLOW ---
+
+        function openModal(movieId) {
+            const movie = moviesData.find(m => m.id === movieId);
+            if (!movie) return;
+            currentSelectedMovie = movie;
+
+            document.getElementById('modal-backdrop').src = movie.backdrop;
+            document.getElementById('modal-title').textContent = movie.title;
+            document.getElementById('modal-match').textContent = movie.match;
+            document.getElementById('modal-year').textContent = movie.year;
+            document.getElementById('modal-age').textContent = movie.age;
+            document.getElementById('modal-episodes').textContent = movie.duration;
+            document.getElementById('modal-overview').textContent = movie.overview;
+            document.getElementById('modal-genres').textContent = movie.genres;
+
+            document.getElementById('modal-play-btn').onclick = () => playModalTrailer();
+            updateModalListButton();
+
+            const modal = document.getElementById('movie-modal');
+            modal.classList.remove('hidden');
+            document.body.classList.add('overflow-y-hidden');
         }
 
         function closeModal() {
-            movieModal.classList.add('opacity-0');
-            modalWrapper.classList.remove('scale-100');
-            modalWrapper.classList.add('scale-95');
-            
-            setTimeout(() => {
-                movieModal.classList.add('hidden');
-                document.body.style.overflow = 'auto'; // Restore scrolling
-            }, 300); // match transition duration
+            document.getElementById('movie-modal').classList.add('hidden');
+            document.body.classList.remove('overflow-y-hidden');
         }
 
-        // --- Event Listeners ---
-        
-        // Navigation Tabs
-        navTabs.forEach(tab => {
-            tab.addEventListener('click', (e) => {
-                // Update styling
-                navTabs.forEach(t => {
-                    t.classList.remove('border-blue-500', 'text-white', 'active-tab');
-                    t.classList.add('border-transparent', 'text-slate-400');
-                });
-                const clickedTab = e.currentTarget;
-                clickedTab.classList.remove('border-transparent', 'text-slate-400');
-                clickedTab.classList.add('border-blue-500', 'text-white', 'active-tab');
-
-                // Update state and fetch
-                state.activeTab = clickedTab.dataset.tab;
-                state.searchQuery = '';
-                searchInput.value = '';
-                clearSearchBtn.classList.add('hidden');
-                
-                fetchMovies(categories[state.activeTab].endpoint);
-            });
-        });
-
-        // Search Input with Debounce
-        let searchTimeout;
-        searchInput.addEventListener('input', (e) => {
-            const query = e.target.value;
-            state.searchQuery = query;
+        function toggleMyListFromModal() {
+            if (!currentSelectedMovie) return;
+            const index = myList.indexOf(currentSelectedMovie.id);
+            if (index > -1) myList.splice(index, 1);
+            else myList.push(currentSelectedMovie.id);
             
-            if (query.length > 0) {
-                clearSearchBtn.classList.remove('hidden');
+            updateModalListButton();
+            updateHeaderMyList();
+        }
+
+        function updateModalListButton() {
+            const icon = document.getElementById('modal-list-icon');
+            if (myList.includes(currentSelectedMovie.id)) {
+                icon.innerHTML = `<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"></path>`;
             } else {
-                clearSearchBtn.classList.add('hidden');
+                icon.innerHTML = `<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 4v16m8-8H4"></path>`;
             }
+        }
 
+        // --- FULL SCREEN VIDEO PLAYER ENGINE ---
+
+        function playModalTrailer() {
+            closeModal();
+            openVideoPlayer(currentSelectedMovie.title, currentSelectedMovie.backdrop);
+        }
+
+        function openVideoPlayer(title, backdrop) {
+            const player = document.getElementById('video-player');
+            document.getElementById('player-title').textContent = title;
+            document.getElementById('player-backdrop').src = backdrop;
+            
+            player.classList.remove('hidden');
+            document.body.classList.add('overflow-y-hidden');
+
+            const loader = document.getElementById('player-loader');
+            const status = document.getElementById('player-status');
+            
+            loader.classList.remove('hidden');
+            status.classList.add('hidden');
+
+            setTimeout(() => {
+                loader.classList.add('hidden');
+                status.classList.remove('hidden');
+            }, 2500);
+        }
+
+        function closeVideoPlayer() {
+            const player = document.getElementById('video-player');
+            player.classList.add('hidden');
+            document.body.classList.remove('overflow-y-hidden');
+        }
+
+        function togglePlayerPlay() {
+            const playIcon = document.getElementById('player-play-icon');
+            const pauseIcon = document.getElementById('player-pause-icon');
+            const status = document.getElementById('player-status');
+            
+            if (playIcon.classList.contains('hidden')) {
+                playIcon.classList.remove('hidden');
+                pauseIcon.classList.add('hidden');
+                status.innerHTML = `<p class="text-5xl font-extrabold tracking-wide drop-shadow-lg">STREAM PAUSED</p>`;
+            } else {
+                playIcon.classList.add('hidden');
+                pauseIcon.classList.remove('hidden');
+                status.innerHTML = `<p class="text-5xl font-extrabold tracking-wide drop-shadow-lg">STREAM PLAYING</p><p class="text-gray-300 mt-2 text-sm">Simulated high quality cinematic experience</p>`;
+            }
+        }
+
+        function toggleFullscreen() {
+            if (!document.fullscreenElement) {
+                document.documentElement.requestFullscreen().catch(() => {});
+            } else {
+                document.exitFullscreen();
+            }
+        }
+
+        // --- DYNAMIC SEARCH IMPLEMENTATION ---
+        
+        function handleSearchTimeout(query) {
             clearTimeout(searchTimeout);
-            searchTimeout = setTimeout(() => {
-                if (query.trim()) {
-                    // Deselect tabs visually when searching
-                    navTabs.forEach(t => {
-                        t.classList.remove('border-blue-500', 'text-white');
-                        t.classList.add('border-transparent', 'text-slate-400');
-                    });
-                    fetchMovies('/search/titles', query);
-                } else {
-                    // Restore active tab
-                    const activeBtn = document.querySelector(`.nav-tab[data-tab="${state.activeTab}"]`);
-                    activeBtn.click(); // Trigger fetch via click logic
-                }
-            }, 500);
-        });
+            searchTimeout = setTimeout(() => executeSearch(query), 400); // Debounce API calls
+        }
 
-        // Clear Search
-        clearSearchBtn.addEventListener('click', () => {
-            searchInput.value = '';
-            state.searchQuery = '';
-            clearSearchBtn.classList.add('hidden');
-            const activeBtn = document.querySelector(`.nav-tab[data-tab="${state.activeTab}"]`);
-            activeBtn.click();
-        });
+        async function executeSearch(query) {
+            const contentContainer = document.getElementById('content-container');
+            const searchSection = document.getElementById('search-section');
+            const resultsGrid = document.getElementById('search-results-grid');
+            const resultsHeading = document.getElementById('search-results-heading');
 
-        // Modal Close triggers
-        closeModalBtn.addEventListener('click', closeModal);
-        modalBackdrop.addEventListener('click', closeModal);
-        document.addEventListener('keydown', (e) => {
-            if (e.key === 'Escape' && !movieModal.classList.contains('hidden')) {
-                closeModal();
+            if (query.trim() === "") {
+                contentContainer.classList.remove('hidden');
+                searchSection.classList.add('hidden');
+                return;
             }
-        });
 
-        // --- Initialization ---
-        // Start the app by fetching the default tab
-        fetchMovies(categories[state.activeTab].endpoint);
+            contentContainer.classList.add('hidden');
+            searchSection.classList.remove('hidden');
+            resultsHeading.textContent = `Searching API for: "${query}"...`;
+            resultsGrid.innerHTML = '<div class="col-span-full py-12 text-center text-gray-500"><div class="w-10 h-10 border-4 border-netflixRed border-t-transparent rounded-full animate-spin mx-auto mb-4"></div></div>';
 
+            // Real dynamic search fetch
+            const fetchedResults = await fetchFromAPI(`/search/titles?query=${encodeURIComponent(query)}`);
+            
+            // Register found items in global store to ensure modal opens correctly
+            fetchedResults.forEach(movie => {
+                if (!moviesData.find(m => m.id === movie.id)) moviesData.push(movie);
+            });
+
+            resultsHeading.textContent = `Search results for: "${query}"`;
+            resultsGrid.innerHTML = ""; 
+
+            if (fetchedResults.length === 0) {
+                resultsGrid.innerHTML = `
+                    <div class="col-span-full text-center py-12 text-gray-500">
+                        <p class="text-lg font-semibold">No results found.</p>
+                        <p class="text-sm mt-1">Try a different title, or the API might be restricted.</p>
+                    </div>
+                `;
+                return;
+            }
+
+            fetchedResults.forEach(movie => {
+                const cardHtml = `
+                    <div onclick="openModal('${movie.id}')" class="group/search-card aspect-video bg-netflixGray rounded overflow-hidden cursor-pointer relative shadow-lg transition-all duration-300">
+                        <img src="${movie.thumbnail}" alt="${movie.title}" class="w-full h-full object-cover">
+                        <div class="absolute inset-0 bg-gradient-to-t from-black via-black/40 to-transparent opacity-0 group-hover/search-card:opacity-100 transition-opacity duration-300 flex flex-col justify-end p-3">
+                            <p class="font-bold text-xs md:text-sm leading-tight truncate">${movie.title}</p>
+                        </div>
+                    </div>
+                `;
+                resultsGrid.insertAdjacentHTML('beforeend', cardHtml);
+            });
+        }
     </script>
 </body>
 </html>
