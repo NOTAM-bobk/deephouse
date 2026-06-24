@@ -83,25 +83,25 @@
   .icon-btn:hover{opacity:1; background:rgba(255,255,255,.08);}
   .icon-btn.active{background:rgba(255,255,255,.1); opacity:1;}
   .search-panel{
-    position:absolute; top:calc(100% + 12px); right:0; width:340px; max-width:88vw;
-    background:rgba(18,18,21,0.88);
+    position:absolute; top:calc(100% + 12px); right:0; width:360px; max-width:88vw;
+    background:rgba(18,18,21,0.95);
     backdrop-filter:blur(26px) saturate(160%);
     -webkit-backdrop-filter:blur(26px) saturate(160%);
     border:1px solid var(--border); border-radius:16px;
-    padding:14px; box-shadow:var(--shadow);
+    padding:16px; box-shadow:var(--shadow);
     opacity:0; transform:translateY(-8px) scale(.98);
     pointer-events:none; transition:opacity .2s ease, transform .2s ease;
   }
   .search-panel.open{opacity:1; transform:translateY(0) scale(1); pointer-events:auto;}
   .search-field{
     display:flex; align-items:center; gap:10px;
-    background:rgba(255,255,255,.07); border:1px solid var(--border); border-radius:11px;
-    padding:11px 14px; transition:border-color .2s, background .2s;
+    background:rgba(255,255,255,.08); border:1px solid var(--border); border-radius:12px;
+    padding:12px 16px; transition:border-color .2s, background .2s;
   }
-  .search-field:focus-within{border-color:var(--accent); background:rgba(255,255,255,.1);}
+  .search-field:focus-within{border-color:var(--accent); background:rgba(255,255,255,.12);}
   .search-field svg{flex-shrink:0; color:var(--text-dim);}
   .search-field input{
-    flex:1; background:none; border:none; color:var(--text); font-size:14.5px; outline:none;
+    flex:1; background:none; border:none; color:var(--text); font-size:15px; outline:none;
   }
   .search-field input::placeholder{color:var(--text-faint);}
   .search-clear{
@@ -109,17 +109,17 @@
     width:20px; height:20px; display:none; align-items:center; justify-content:center; border-radius:50%;
   }
   .search-clear:hover{color:var(--text); background:rgba(255,255,255,.08);}
-  .recent-wrap{margin-top:14px;}
-  .recent-head{display:flex; justify-content:space-between; align-items:center; margin-bottom:6px; padding:0 2px;}
-  .recent-head span{font-size:10.5px; text-transform:uppercase; letter-spacing:1.4px; color:var(--text-faint); font-weight:700;}
+  .recent-wrap{margin-top:16px;}
+  .recent-head{display:flex; justify-content:space-between; align-items:center; margin-bottom:8px; padding:0 2px;}
+  .recent-head span{font-size:11px; text-transform:uppercase; letter-spacing:1.4px; color:var(--text-faint); font-weight:700;}
   .recent-head button{font-size:11px; color:var(--text-dim);}
   .recent-head button:hover{color:var(--text);}
-  .recent-list{display:flex; flex-direction:column; gap:1px; max-height:240px; overflow-y:auto;}
+  .recent-list{display:flex; flex-direction:column; gap:1px; max-height:280px; overflow-y:auto;}
   .recent-item{
-    display:flex; align-items:center; gap:10px; padding:9px 8px; border-radius:9px;
-    font-size:13.5px; color:var(--text-dim); cursor:pointer; transition:background .15s, color .15s;
+    display:flex; align-items:center; gap:10px; padding:10px 8px; border-radius:9px;
+    font-size:14px; color:var(--text-dim); cursor:pointer; transition:background .15s, color .15s;
   }
-  .recent-item:hover{background:rgba(255,255,255,.07); color:var(--text);}
+  .recent-item:hover{background:rgba(255,255,255,.08); color:var(--text);}
   .recent-item svg{width:14px; height:14px; flex-shrink:0; color:var(--text-faint);}
   .recent-empty{font-size:12px; color:var(--text-faint); padding:8px 2px;}
 
@@ -245,25 +245,27 @@
 
   /* ---------- Modal ---------- */
   .modal-backdrop{
-    position:fixed; inset:0; background:rgba(0,0,0,.7); z-index:200;
+    position:fixed; inset:0; background:rgba(0,0,0,.8); z-index:200;
     display:none; align-items:flex-end; justify-content:center;
     padding:0; transition:background .2s ease;
+    touch-action:none;
   }
   .modal-backdrop.show{display:flex;}
   .modal{
-    width:100%; max-width:880px; height:94vh; max-height:94vh;
+    width:100%; max-width:100%; height:98vh; max-height:98vh;
     background:var(--bg-elev);
-    border-radius:20px 20px 0 0; overflow:hidden; box-shadow:var(--shadow);
+    border-radius:24px 24px 0 0; overflow:hidden; box-shadow:var(--shadow);
     border:1px solid var(--border); border-bottom:none;
     display:flex; flex-direction:column;
     animation:riseUp .32s cubic-bezier(.22,.8,.25,1);
+    touch-action:none;
   }
   @keyframes riseUp{from{transform:translateY(100%);} to{transform:translateY(0);}}
   .modal-drag-handle{
-    flex-shrink:0; display:flex; justify-content:center; padding:12px 0 8px;
-    cursor:grab; touch-action:none;
+    flex-shrink:0; display:flex; justify-content:center; padding:14px 0 10px;
+    cursor:grab; touch-action:none; user-select:none;
   }
-  .modal-drag-handle .bar{width:42px; height:4px; border-radius:3px; background:var(--text-faint); opacity:.6;}
+  .modal-drag-handle .bar{width:48px; height:5px; border-radius:3px; background:var(--text-faint); opacity:.5;}
   .modal-scroll{flex:1; overflow-y:auto; -webkit-overflow-scrolling:touch;}
   .modal-hero{position:relative; aspect-ratio:16/8; background-size:cover; background-position:center;}
   .modal-hero::after{
@@ -293,11 +295,17 @@
   }
   .trailer-frame.show{display:block;}
   .trailer-frame iframe{width:100%; height:100%; border:0;}
+  .player-frame{
+    position:relative; width:100%; aspect-ratio:16/9; border-radius:8px; overflow:hidden;
+    background:#000; margin-top:6px; display:none;
+  }
+  .player-frame.show{display:block;}
+  .player-frame iframe{width:100%; height:100%; border:0;}
   .episodes-wrap{margin-top:6px; margin-bottom:18px;}
   .episodes-head{display:flex; justify-content:space-between; align-items:center; margin-bottom:12px; gap:12px; flex-wrap:wrap;}
   .season-select{
     background:var(--card); color:var(--text); border:1px solid var(--border); border-radius:8px;
-    padding:7px 10px; font-size:13px; font-family:inherit;
+    padding:8px 12px; font-size:13px; font-family:inherit;
   }
   .episode-item{display:flex; gap:12px; padding:12px 0; border-bottom:1px solid var(--border);}
   .episode-item:last-child{border-bottom:none;}
@@ -353,7 +361,7 @@
     .skel{width:128px;}
     .search-panel{width:86vw; right:-8px;}
     .top10-rank{font-size:78px; margin-right:-16px; top:10px;}
-    .modal{height:96vh;}
+    .modal{height:96vh; border-radius:20px 20px 0 0;}
     .modal-title-wrap{left:18px; right:18px;}
     .modal-body{padding:8px 18px 26px;}
     .episode-still{width:88px;}
@@ -446,14 +454,16 @@
 </nav>
 
 <div class="modal-backdrop" id="modalBackdrop">
-  <div class="modal" id="modal"></div>
+  <div class="modal" id="modal">
+    <div class="modal-drag-handle" id="modalDragHandle"><div class="bar"></div></div>
+  </div>
 </div>
 
 <div class="toast" id="toast"></div>
 
 <script>
 /* =====================================================
-   Netflix (personal TMDB-powered streaming UI)
+   Netflix Enhanced (personal TMDB-powered streaming UI)
    ===================================================== */
 const TMDB_KEY = 'b1941699110de014fceb3d15828f4718';
 const BASE = 'https://api.themoviedb.org/3';
@@ -539,37 +549,48 @@ function skeletonRow(track, n = 8) {
   }
 }
 
-function buildRowShell(title, rowId) {
+function buildRowShell(title, rowId, isTop10 = false) {
   const rows = document.getElementById('rows');
   const row = document.createElement('div');
   row.className = 'row';
   row.id = rowId;
   row.innerHTML = `
     <div class="row-head"><div class="row-title">${title}</div></div>
-    <div class="row-track"></div>`;
+    <div class="row-track${isTop10 ? ' top10-track' : ''}"></div>`;
   rows.appendChild(row);
   const track = row.querySelector('.row-track');
   skeletonRow(track);
   return track;
 }
 
-function fillTrack(track, items, fallbackType) {
+function fillTrack(track, items, fallbackType, isTop10 = false) {
   track.innerHTML = '';
   if (!items.length) {
     track.parentElement.style.display = 'none';
     return;
   }
-  items.forEach(item => {
+  items.forEach((item, index) => {
     if (!item.media_type) item.media_type = fallbackType;
-    track.appendChild(cardEl(item));
+    if (isTop10) {
+      const wrapper = document.createElement('div');
+      wrapper.className = 'top10-item';
+      const rank = document.createElement('div');
+      rank.className = 'top10-rank';
+      rank.textContent = String(index + 1).padStart(2, '0');
+      wrapper.appendChild(rank);
+      wrapper.appendChild(cardEl(item));
+      track.appendChild(wrapper);
+    } else {
+      track.appendChild(cardEl(item));
+    }
   });
 }
 
-async function loadRow(title, rowId, fetcher, fallbackType) {
-  const track = buildRowShell(title, rowId);
+async function loadRow(title, rowId, fetcher, fallbackType, isTop10 = false) {
+  const track = buildRowShell(title, rowId, isTop10);
   try {
     const data = await fetcher();
-    fillTrack(track, data.results || [], fallbackType);
+    fillTrack(track, data.results || [], fallbackType, isTop10);
   } catch (e) {
     track.innerHTML = `<div class="empty-row">Couldn't load this row right now.</div>`;
   }
@@ -583,7 +604,7 @@ function renderMyListRow() {
     row = document.createElement('div');
     row.className = 'row';
     row.id = 'row-mylist';
-    row.style.display = 'none'; // hidden on Home; only shown via the My List / Watchlist filter
+    row.style.display = 'none';
     row.innerHTML = `<div class="row-head"><div class="row-title">My List</div></div><div class="row-track"></div>`;
     rowsContainer.insertBefore(row, rowsContainer.firstChild);
   }
@@ -640,16 +661,56 @@ function setHero(i) {
   document.getElementById('heroInfoBtn').onclick = () => openModal(item.id, mediaType(item));
 }
 
-/* ---- Modal ---- */
+/* ---- Modal with swipe-to-close ---- */
+let modalTouchStart = 0;
+let modalTouchCurrent = 0;
+
+function setupModalSwipe() {
+  const modal = document.getElementById('modal');
+  const backdrop = document.getElementById('modalBackdrop');
+  const dragHandle = document.getElementById('modalDragHandle');
+
+  dragHandle.addEventListener('touchstart', (e) => {
+    modalTouchStart = e.touches[0].clientY;
+    dragHandle.style.cursor = 'grabbing';
+  }, false);
+
+  dragHandle.addEventListener('touchmove', (e) => {
+    modalTouchCurrent = e.touches[0].clientY;
+    const diff = modalTouchCurrent - modalTouchStart;
+    if (diff > 0) {
+      modal.style.transform = `translateY(${diff}px)`;
+    }
+  }, false);
+
+  dragHandle.addEventListener('touchend', (e) => {
+    const diff = modalTouchCurrent - modalTouchStart;
+    dragHandle.style.cursor = 'grab';
+    if (diff > 100) {
+      closeModal();
+    } else {
+      modal.style.transform = 'translateY(0)';
+    }
+  }, false);
+}
+
 async function openModal(id, type, opts = {}) {
   const backdrop = document.getElementById('modalBackdrop');
   const modal = document.getElementById('modal');
-  modal.innerHTML = `<div style="padding:80px; text-align:center; color:var(--text-dim);">Loading…</div>`;
+  const scrollContent = modal.querySelector('.modal-scroll');
+  
+  if (scrollContent) scrollContent.remove();
+  
+  const loadingDiv = document.createElement('div');
+  loadingDiv.style.cssText = 'padding:80px; text-align:center; color:var(--text-dim);';
+  loadingDiv.textContent = 'Loading…';
+  modal.appendChild(loadingDiv);
+  
   backdrop.classList.add('show');
   document.body.style.overflow = 'hidden';
 
   try {
-    const data = await tmdb(`/${type}/${id}`, { append_to_response: 'videos,credits' });
+    const data = await tmdb(`/${type}/${id}`, { append_to_response: 'videos,credits,external_ids' });
     const title = data.title || data.name;
     const year = (data.release_date || data.first_air_date || '').slice(0, 4);
     const runtime = type === 'movie'
@@ -661,8 +722,33 @@ async function openModal(id, type, opts = {}) {
       || (data.videos?.results || []).find(v => v.site === 'YouTube');
     const backdropUrl = img(data.backdrop_path, IMG_BACKDROP_SMALL);
     const inList = isInWatchlist(id, type);
+    
+    // Get IMDB or TMDB ID for VidFast
+    const imdbId = data.external_ids?.imdb_id || `tt${data.id}`;
+    const tmdbId = data.id;
 
-    modal.innerHTML = `
+    loadingDiv.remove();
+
+    const scrollDiv = document.createElement('div');
+    scrollDiv.className = 'modal-scroll';
+    
+    let playerHtml = '';
+    if (type === 'movie') {
+      playerHtml = `
+        <div class="player-frame" id="playerFrame" style="display:none;">
+          <iframe src="https://vidfast.pro/movie/${imdbId}?autoPlay=true&title=true&poster=true" allowfullscreen></iframe>
+        </div>`;
+    } else {
+      playerHtml = `
+        <div class="episodes-wrap" id="episodesWrap" style="display:none;">
+          <div class="episodes-head">
+            <label>Season: <select class="season-select" id="seasonSelect"></select></label>
+          </div>
+          <div id="playerContainer"></div>
+        </div>`;
+    }
+
+    scrollDiv.innerHTML = `
       <div class="modal-hero" style="${backdropUrl ? `background-image:url(${backdropUrl})` : 'background:#1c1c1f'}">
         <button class="modal-close" id="modalCloseBtn">✕</button>
         <div class="modal-title-wrap">
@@ -681,19 +767,39 @@ async function openModal(id, type, opts = {}) {
             <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
             ${trailer ? 'Play Trailer' : 'No Trailer Available'}
           </button>
+          <button class="btn btn-primary" id="playBtn" style="background:var(--accent);">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
+            Play
+          </button>
           <button class="btn btn-ghost" id="watchlistBtn">${inList ? '✓ In My List' : '+ My List'}</button>
         </div>
         <div class="trailer-frame" id="trailerFrame"></div>
+        ${playerHtml}
         <p class="modal-overview">${data.overview || 'No description available.'}</p>
         ${cast ? `<div class="cast-label">Cast</div><div class="cast-list">${cast}</div>` : ''}
-        <div class="note">This app streams metadata, artwork, and trailers from TMDB only — full-length playback isn't included, since TMDB doesn't license movie or episode video.</div>
+        <div class="note">This app streams metadata, artwork, and trailers from TMDB. Full-length playback is powered by VidFast.</div>
       </div>`;
+
+    modal.appendChild(scrollDiv);
 
     document.getElementById('modalCloseBtn').onclick = closeModal;
     document.getElementById('watchlistBtn').onclick = (e) => {
       const nowIn = toggleWatchlist({ id, media_type: type, title, poster_path: data.poster_path, vote_average: data.vote_average, release_date: data.release_date, first_air_date: data.first_air_date });
       e.target.textContent = nowIn ? '✓ In My List' : '+ My List';
     };
+
+    // Play button handler
+    document.getElementById('playBtn').onclick = () => {
+      const playerFrame = document.getElementById('playerFrame');
+      const episodesWrap = document.getElementById('episodesWrap');
+      
+      if (type === 'movie') {
+        if (playerFrame) playerFrame.classList.toggle('show');
+      } else {
+        if (episodesWrap) episodesWrap.classList.toggle('show');
+      }
+    };
+
     if (trailer) {
       const frame = document.getElementById('trailerFrame');
       const playTrailer = () => {
@@ -703,23 +809,97 @@ async function openModal(id, type, opts = {}) {
       document.getElementById('trailerBtn').onclick = playTrailer;
       if (opts.autoplayTrailer) playTrailer();
     }
+
+    // TV Show: Load seasons and episodes
+    if (type === 'tv' && data.number_of_seasons) {
+      const seasonSelect = document.getElementById('seasonSelect');
+      const playerContainer = document.getElementById('playerContainer');
+      
+      for (let s = 1; s <= data.number_of_seasons; s++) {
+        const opt = document.createElement('option');
+        opt.value = s;
+        opt.textContent = `Season ${s}`;
+        seasonSelect.appendChild(opt);
+      }
+
+      const loadEpisodes = async (season) => {
+        playerContainer.innerHTML = '<div class="episode-loading">Loading episodes...</div>';
+        try {
+          const seasonData = await tmdb(`/tv/${id}/season/${season}`);
+          const episodes = seasonData.episodes || [];
+          
+          playerContainer.innerHTML = '';
+          
+          if (episodes.length === 0) {
+            playerContainer.innerHTML = '<div class="episode-loading">No episodes available.</div>';
+            return;
+          }
+
+          episodes.forEach((ep, idx) => {
+            const epDiv = document.createElement('div');
+            epDiv.className = 'episode-item';
+            const stillUrl = img(ep.still_path, IMG_BACKDROP_SMALL);
+            epDiv.innerHTML = `
+              <div class="episode-num">${ep.episode_number}</div>
+              <div class="episode-still">${stillUrl ? `<img src="${stillUrl}" alt="Ep ${ep.episode_number}">` : ''}</div>
+              <div class="episode-info">
+                <div class="episode-title">${ep.name || `Episode ${ep.episode_number}`}</div>
+                <div class="episode-meta">Air date: ${ep.air_date || 'TBA'}</div>
+                <div class="episode-overview">${ep.overview || 'No description available.'}</div>
+                <button class="btn btn-primary" style="margin-top:8px; padding:8px 16px; font-size:12px;" onclick="playEpisode('${imdbId}', ${season}, ${ep.episode_number})">
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
+                  Play Episode
+                </button>
+              </div>
+            `;
+            playerContainer.appendChild(epDiv);
+          });
+        } catch (e) {
+          playerContainer.innerHTML = '<div class="episode-loading">Failed to load episodes.</div>';
+        }
+      };
+
+      seasonSelect.addEventListener('change', (e) => loadEpisodes(parseInt(e.target.value)));
+      loadEpisodes(1);
+    }
+
   } catch (e) {
-    modal.innerHTML = `<div style="padding:60px; text-align:center; color:var(--text-dim);">
+    loadingDiv.remove();
+    const errorDiv = document.createElement('div');
+    errorDiv.style.cssText = 'padding:60px; text-align:center; color:var(--text-dim);';
+    errorDiv.innerHTML = `
       <button class="modal-close" id="modalCloseBtn" style="position:static; display:inline-flex; margin-bottom:20px;">✕</button><br>
-      Something went wrong loading this title.</div>`;
+      Something went wrong loading this title.`;
+    modal.appendChild(errorDiv);
     document.getElementById('modalCloseBtn').onclick = closeModal;
   }
 }
 
+function playEpisode(imdbId, season, episode) {
+  const playerContainer = document.getElementById('playerContainer');
+  const playerHtml = `
+    <div style="margin-top:16px; border-radius:8px; overflow:hidden; aspect-ratio:16/9; background:#000;">
+      <iframe src="https://vidfast.pro/tv/${imdbId}/${season}/${episode}?autoPlay=true&title=true&poster=true" style="width:100%; height:100%; border:none;" allowfullscreen></iframe>
+    </div>`;
+  playerContainer.insertAdjacentHTML('afterbegin', playerHtml);
+}
+
 function closeModal() {
-  document.getElementById('modalBackdrop').classList.remove('show');
-  document.getElementById('modal').innerHTML = '';
+  const modal = document.getElementById('modal');
+  const backdrop = document.getElementById('modalBackdrop');
+  modal.style.transform = 'translateY(0)';
+  backdrop.classList.remove('show');
+  const scrollDiv = modal.querySelector('.modal-scroll');
+  if (scrollDiv) scrollDiv.remove();
   document.body.style.overflow = '';
 }
+
 document.getElementById('modalBackdrop').addEventListener('click', (e) => {
   if (e.target.id === 'modalBackdrop') closeModal();
 });
 window.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeModal(); });
+
+setupModalSwipe();
 
 /* ---- Nav scroll state ---- */
 window.addEventListener('scroll', () => {
@@ -896,6 +1076,7 @@ document.getElementById('logoBtn').addEventListener('click', () => applyCategory
 async function init() {
   renderMyListRow();
   loadHero();
+  loadRow('Top 10 This Week', 'row-top10', () => tmdb('/trending/all/week'), 'movie', true);
   loadRow('Trending Now', 'row-trending', () => tmdb('/trending/all/week'), 'movie');
   loadRow('Popular Movies', 'row-popmovies', () => tmdb('/movie/popular'), 'movie');
   loadRow('Popular TV Shows', 'row-tvpopular', () => tmdb('/tv/popular'), 'tv');
