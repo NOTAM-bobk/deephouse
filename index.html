@@ -261,6 +261,8 @@
     touch-action:none;
   }
   @keyframes riseUp{from{transform:translateY(100%);} to{transform:translateY(0);}}
+  @keyframes slideDown{from{transform:translateY(0);} to{transform:translateY(100%);}}
+  .modal.closing{animation:slideDown .32s cubic-bezier(.22,.8,.25,1) forwards;}
   .modal-drag-handle{
     flex-shrink:0; display:flex; justify-content:center; padding:14px 0 10px;
     cursor:grab; touch-action:none; user-select:none;
@@ -276,11 +278,13 @@
     position:absolute; top:14px; right:14px; z-index:5;
     width:34px; height:34px; border-radius:50%; background:rgba(10,10,12,.75);
     display:flex; align-items:center; justify-content:center; font-size:18px;
+    cursor:pointer; transition:background .2s;
   }
+  .modal-close:hover{background:rgba(10,10,12,.9);}
   .modal-title-wrap{position:absolute; bottom:18px; left:28px; right:28px; z-index:2;}
   .modal-title{font-family:'Bebas Neue'; font-size:clamp(28px,5vw,42px); letter-spacing:1px;}
   .modal-body{padding:10px 28px 32px;}
-  .modal-actions{display:flex; gap:10px; margin-bottom:18px; flex-wrap:wrap;}
+  .modal-actions{display:flex; gap:10px; margin-bottom:18px; flex-wrap:wrap; align-items:center;}
   .modal-meta{display:flex; gap:14px; flex-wrap:wrap; font-size:13px; color:var(--text-dim); margin-bottom:14px;}
   .pill{
     border:1px solid var(--border); border-radius:20px; padding:4px 12px; font-size:12px; color:var(--text-dim);
@@ -494,6 +498,22 @@ const WL_KEY = 'velvet_watchlist';
 const getWatchlist = () => JSON.parse(localStorage.getItem(WL_KEY) || '[]');
 const setWatchlist = (list) => localStorage.setItem(WL_KEY, JSON.stringify(list));
 const isInWatchlist = (id, type) => getWatchlist().some(i => i.id === id && i.media_type === type);
+
+/* ---- Continue Watching (localStorage) ---- */
+const CW_KEY = 'netflix_continue_watching';
+const getContinueWatching = () => JSON.parse(localStorage.getItem(CW_KEY) || '[]');
+const setContinueWatching = (list) => localStorage.setItem(CW_KEY, JSON.stringify(list));
+function addToContinueWatching(item) {
+  let list = getContinueWatching();
+  const exists = list.findIndex(i => i.id === item.id && i.media_type === item.media_type);
+  if (exists >= 0) {
+    list.splice(exists, 1);
+  }
+  list.unshift({ ...item, timestamp: Date.now() });
+  setContinueWatching(list.slice(0, 20));
+  renderContinueWatchingRow();
+}
+
 function toggleWatchlist(item) {
   let list = getWatchlist();
   const exists = list.some(i => i.id === item.id && i.media_type === item.media_type);
@@ -618,6 +638,32 @@ function renderMyListRow() {
   row.style.display = (typeof currentCategory !== 'undefined' && currentCategory === 'mylist') ? '' : 'none';
 }
 
+function renderContinueWatchingRow() {
+  let row = document.getElementById('row-continue-watching');
+  const rowsContainer = document.getElementById('rows');
+  const list = getContinueWatching();
+  
+  if (!row && list.length > 0) {
+    row = document.createElement('div');
+    row.className = 'row';
+    row.id = 'row-continue-watching';
+    row.innerHTML = `<div class="row-head"><div class="row-title">Continue Watching</div></div><div class="row-track"></div>`;
+    rowsContainer.insertBefore(row, rowsContainer.children[1]);
+  }
+  
+  if (!row) return;
+  
+  const track = row.querySelector('.row-track');
+  track.innerHTML = '';
+  
+  if (!list.length) {
+    row.style.display = 'none';
+  } else {
+    row.style.display = '';
+    list.forEach(item => track.appendChild(cardEl(item)));
+  }
+}
+
 /* ---- Hero ---- */
 let heroItems = [];
 let heroIndex = 0;
@@ -664,6 +710,7 @@ function setHero(i) {
 /* ---- Modal with swipe-to-close ---- */
 let modalTouchStart = 0;
 let modalTouchCurrent = 0;
+let currentModalData = null;
 
 function setupModalSwipe() {
   const modal = document.getElementById('modal');
@@ -727,24 +774,30 @@ async function openModal(id, type, opts = {}) {
     const imdbId = data.external_ids?.imdb_id || `tt${data.id}`;
     const tmdbId = data.id;
 
+    currentModalData = { id, type, data, imdbId, title };
+
     loadingDiv.remove();
 
     const scrollDiv = document.createElement('div');
     scrollDiv.className = 'modal-scroll';
     
     let playerHtml = '';
+    let tvControlsHtml = '';
+    
     if (type === 'movie') {
       playerHtml = `
         <div class="player-frame" id="playerFrame" style="display:none;">
           <iframe src="https://vidfast.pro/movie/${imdbId}?autoPlay=true&title=true&poster=true" allowfullscreen></iframe>
         </div>`;
     } else {
+      tvControlsHtml = `
+        <div style="display:flex; gap:10px; align-items:center; margin-bottom:10px;">
+          <label style="font-size:13px; color:var(--text-dim);">Season: <select class="season-select" id="seasonSelect"></select></label>
+          <label style="font-size:13px; color:var(--text-dim);">Episode: <select class="season-select" id="episodeSelect"></select></label>
+        </div>`;
       playerHtml = `
-        <div class="episodes-wrap" id="episodesWrap" style="display:none;">
-          <div class="episodes-head">
-            <label>Season: <select class="season-select" id="seasonSelect"></select></label>
-          </div>
-          <div id="playerContainer"></div>
+        <div class="player-frame" id="playerFrame" style="display:none;">
+          <iframe id="tvPlayerIframe" src="" allowfullscreen></iframe>
         </div>`;
     }
 
@@ -765,8 +818,9 @@ async function openModal(id, type, opts = {}) {
         <div class="modal-actions">
           <button class="btn btn-primary" id="trailerBtn" ${trailer ? '' : 'disabled style="opacity:.4;cursor:default;"'}>
             <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
-            ${trailer ? 'Play Trailer' : 'No Trailer Available'}
+            Trailer
           </button>
+          ${tvControlsHtml}
           <button class="btn btn-primary" id="playBtn" style="background:var(--accent);">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
             Play
@@ -791,12 +845,11 @@ async function openModal(id, type, opts = {}) {
     // Play button handler
     document.getElementById('playBtn').onclick = () => {
       const playerFrame = document.getElementById('playerFrame');
-      const episodesWrap = document.getElementById('episodesWrap');
-      
-      if (type === 'movie') {
-        if (playerFrame) playerFrame.classList.toggle('show');
-      } else {
-        if (episodesWrap) episodesWrap.classList.toggle('show');
+      if (playerFrame) {
+        playerFrame.classList.toggle('show');
+        if (playerFrame.classList.contains('show')) {
+          addToContinueWatching({ id, media_type: type, title, poster_path: data.poster_path, vote_average: data.vote_average, release_date: data.release_date, first_air_date: data.first_air_date });
+        }
       }
     };
 
@@ -813,57 +866,50 @@ async function openModal(id, type, opts = {}) {
     // TV Show: Load seasons and episodes
     if (type === 'tv' && data.number_of_seasons) {
       const seasonSelect = document.getElementById('seasonSelect');
-      const playerContainer = document.getElementById('playerContainer');
+      const episodeSelect = document.getElementById('episodeSelect');
+      const playerFrame = document.getElementById('playerFrame');
+      const tvPlayerIframe = document.getElementById('tvPlayerIframe');
       
       for (let s = 1; s <= data.number_of_seasons; s++) {
         const opt = document.createElement('option');
         opt.value = s;
-        opt.textContent = `Season ${s}`;
+        opt.textContent = `S${s}`;
         seasonSelect.appendChild(opt);
       }
 
-      const loadEpisodes = async (season) => {
-        playerContainer.innerHTML = '<div class="episode-loading">Loading episodes...</div>';
+      const updateEpisodes = async (season) => {
         try {
           const seasonData = await tmdb(`/tv/${id}/season/${season}`);
           const episodes = seasonData.episodes || [];
-          
-          playerContainer.innerHTML = '';
-          
-          if (episodes.length === 0) {
-            playerContainer.innerHTML = '<div class="episode-loading">No episodes available.</div>';
-            return;
-          }
-
+          episodeSelect.innerHTML = '';
           episodes.forEach((ep, idx) => {
-            const epDiv = document.createElement('div');
-            epDiv.className = 'episode-item';
-            const stillUrl = img(ep.still_path, IMG_BACKDROP_SMALL);
-            epDiv.innerHTML = `
-              <div class="episode-num">${ep.episode_number}</div>
-              <div class="episode-still">${stillUrl ? `<img src="${stillUrl}" alt="Ep ${ep.episode_number}">` : ''}</div>
-              <div class="episode-info">
-                <div class="episode-title">${ep.name || `Episode ${ep.episode_number}`}</div>
-                <div class="episode-meta">Air date: ${ep.air_date || 'TBA'}</div>
-                <div class="episode-overview">${ep.overview || 'No description available.'}</div>
-                <button class="btn btn-primary" style="margin-top:8px; padding:8px 16px; font-size:12px;" onclick="playEpisode('${imdbId}', ${season}, ${ep.episode_number})">
-                  <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
-                  Play Episode
-                </button>
-              </div>
-            `;
-            playerContainer.appendChild(epDiv);
+            const opt = document.createElement('option');
+            opt.value = ep.episode_number;
+            opt.textContent = `E${ep.episode_number}`;
+            episodeSelect.appendChild(opt);
           });
+          updatePlayerUrl();
         } catch (e) {
-          playerContainer.innerHTML = '<div class="episode-loading">Failed to load episodes.</div>';
+          console.error('Failed to load episodes:', e);
         }
       };
 
-      seasonSelect.addEventListener('change', (e) => loadEpisodes(parseInt(e.target.value)));
-      loadEpisodes(1);
+      const updatePlayerUrl = () => {
+        const season = seasonSelect.value;
+        const episode = episodeSelect.value;
+        if (season && episode) {
+          tvPlayerIframe.src = `https://vidfast.pro/tv/${imdbId}/${season}/${episode}?autoPlay=true&title=true&poster=true`;
+        }
+      };
+
+      seasonSelect.addEventListener('change', () => updateEpisodes(seasonSelect.value));
+      episodeSelect.addEventListener('change', updatePlayerUrl);
+      
+      updateEpisodes(1);
     }
 
   } catch (e) {
+    console.error('Modal error:', e);
     loadingDiv.remove();
     const errorDiv = document.createElement('div');
     errorDiv.style.cssText = 'padding:60px; text-align:center; color:var(--text-dim);';
@@ -875,23 +921,20 @@ async function openModal(id, type, opts = {}) {
   }
 }
 
-function playEpisode(imdbId, season, episode) {
-  const playerContainer = document.getElementById('playerContainer');
-  const playerHtml = `
-    <div style="margin-top:16px; border-radius:8px; overflow:hidden; aspect-ratio:16/9; background:#000;">
-      <iframe src="https://vidfast.pro/tv/${imdbId}/${season}/${episode}?autoPlay=true&title=true&poster=true" style="width:100%; height:100%; border:none;" allowfullscreen></iframe>
-    </div>`;
-  playerContainer.insertAdjacentHTML('afterbegin', playerHtml);
-}
-
 function closeModal() {
   const modal = document.getElementById('modal');
   const backdrop = document.getElementById('modalBackdrop');
-  modal.style.transform = 'translateY(0)';
-  backdrop.classList.remove('show');
-  const scrollDiv = modal.querySelector('.modal-scroll');
-  if (scrollDiv) scrollDiv.remove();
-  document.body.style.overflow = '';
+  
+  modal.classList.add('closing');
+  
+  setTimeout(() => {
+    modal.style.transform = 'translateY(0)';
+    modal.classList.remove('closing');
+    backdrop.classList.remove('show');
+    const scrollDiv = modal.querySelector('.modal-scroll');
+    if (scrollDiv) scrollDiv.remove();
+    document.body.style.overflow = '';
+  }, 320);
 }
 
 document.getElementById('modalBackdrop').addEventListener('click', (e) => {
@@ -1050,7 +1093,7 @@ function applyCategory(cat) {
   if (cat === 'movies') {
     document.querySelectorAll('.row').forEach(r => { if (r.id.includes('tv')) r.style.display = 'none'; });
   } else if (cat === 'tv') {
-    document.querySelectorAll('.row').forEach(r => { if (!r.id.includes('tv') && r.id !== 'row-mylist') r.style.display = 'none'; });
+    document.querySelectorAll('.row').forEach(r => { if (!r.id.includes('tv') && r.id !== 'row-mylist' && r.id !== 'row-continue-watching') r.style.display = 'none'; });
   } else if (cat === 'mylist') {
     document.querySelectorAll('.row').forEach(r => { if (r.id !== 'row-mylist') r.style.display = 'none'; });
     if (mylistRow) mylistRow.style.display = '';
@@ -1075,6 +1118,7 @@ document.getElementById('logoBtn').addEventListener('click', () => applyCategory
 /* ---- Boot ---- */
 async function init() {
   renderMyListRow();
+  renderContinueWatchingRow();
   loadHero();
   loadRow('Top 10 This Week', 'row-top10', () => tmdb('/trending/all/week'), 'movie', true);
   loadRow('Trending Now', 'row-trending', () => tmdb('/trending/all/week'), 'movie');
@@ -1087,6 +1131,13 @@ async function init() {
   loadRow('Comedies', 'row-comedy', () => tmdb('/discover/movie', { with_genres: 35, sort_by: 'popularity.desc' }), 'movie');
   loadRow('Horror', 'row-horror', () => tmdb('/discover/movie', { with_genres: 27, sort_by: 'popularity.desc' }), 'movie');
   loadRow('Animation', 'row-animation', () => tmdb('/discover/movie', { with_genres: 16, sort_by: 'popularity.desc' }), 'movie');
+  loadRow('Documentaries', 'row-documentary', () => tmdb('/discover/movie', { with_genres: 99, sort_by: 'popularity.desc' }), 'movie');
+  loadRow('Thriller', 'row-thriller', () => tmdb('/discover/movie', { with_genres: 53, sort_by: 'popularity.desc' }), 'movie');
+  loadRow('Romance', 'row-romance', () => tmdb('/discover/movie', { with_genres: 10749, sort_by: 'popularity.desc' }), 'movie');
+  loadRow('Drama Series', 'row-drama-tv', () => tmdb('/discover/tv', { with_genres: 18, sort_by: 'popularity.desc' }), 'tv');
+  loadRow('Comedy Series', 'row-comedy-tv', () => tmdb('/discover/tv', { with_genres: 35, sort_by: 'popularity.desc' }), 'tv');
+  loadRow('Thriller Series', 'row-thriller-tv', () => tmdb('/discover/tv', { with_genres: 53, sort_by: 'popularity.desc' }), 'tv');
+  loadRow('Upcoming Releases', 'row-upcoming', () => tmdb('/movie/upcoming'), 'movie');
 }
 init();
 </script>
