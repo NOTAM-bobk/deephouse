@@ -114,6 +114,7 @@ img{display:block;max-width:100%;}
 .cw-play-overlay svg{width:44px;height:44px;color:#fff;filter:drop-shadow(0 2px 8px rgba(0,0,0,.8));}
 .cw-info{padding:10px 12px 12px;}
 .cw-title{font-size:13.5px;font-weight:700;margin-bottom:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+/* CHANGE 3: .cw-sub only shows media type, no percentage text */
 .cw-sub{font-size:11.5px;color:var(--text-faint);}
 .cw-remove{position:absolute;top:6px;right:6px;width:26px;height:26px;border-radius:50%;background:rgba(10,10,12,0.75);display:flex;align-items:center;justify-content:center;font-size:13px;opacity:0;transition:opacity .2s;z-index:3;}
 .cw-card:hover .cw-remove{opacity:1;}
@@ -128,15 +129,18 @@ img{display:block;max-width:100%;}
 .search-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:16px;}
 .search-heading{font-size:22px;font-family:'Bebas Neue';letter-spacing:1px;margin-bottom:18px;}
 
-/* Modal */
-.modal-backdrop{position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:200;display:none;align-items:flex-end;justify-content:center;padding:0;transition:background .2s;}
+/* Modal — CHANGE 4: z-index raised above explore overlay (500), set to 600 */
+.modal-backdrop{position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:600;display:none;align-items:flex-end;justify-content:center;padding:0;transition:background .2s;}
 .modal-backdrop.show{display:flex;}
-.modal{width:100%;max-width:880px;height:94vh;max-height:94vh;background:var(--bg-elev);border-radius:20px 20px 0 0;overflow:hidden;box-shadow:var(--shadow);border:1px solid var(--border);border-bottom:none;display:flex;flex-direction:column;animation:riseUp .32s cubic-bezier(.22,.8,.25,1);}
+.modal{width:100%;max-width:880px;background:var(--bg-elev);border-radius:20px 20px 0 0;overflow:hidden;box-shadow:var(--shadow);border:1px solid var(--border);border-bottom:none;display:flex;flex-direction:column;animation:riseUp .32s cubic-bezier(.22,.8,.25,1);
+  /* CHANGE 4: ensure modal fills available height correctly on mobile */
+  height:94vh;max-height:94vh;}
 @keyframes riseUp{from{transform:translateY(100%)}to{transform:translateY(0)}}
 .modal-drag-handle{flex-shrink:0;display:flex;justify-content:center;padding:12px 0 8px;cursor:grab;touch-action:none;}
 .modal-drag-handle .bar{width:42px;height:4px;border-radius:3px;background:var(--text-faint);opacity:.6;}
-.modal-scroll{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;}
-.modal-hero{position:relative;aspect-ratio:16/8;background-size:cover;background-position:center;}
+/* CHANGE 4: modal-scroll must be scrollable and fill remaining space */
+.modal-scroll{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;overscroll-behavior:contain;}
+.modal-hero{position:relative;aspect-ratio:16/8;background-size:cover;background-position:center;flex-shrink:0;}
 .modal-hero::after{content:'';position:absolute;inset:0;background:linear-gradient(180deg,rgba(10,10,12,.1),var(--bg-elev) 95%);}
 .modal-close{position:absolute;top:14px;right:14px;z-index:5;width:34px;height:34px;border-radius:50%;background:rgba(10,10,12,.75);display:flex;align-items:center;justify-content:center;font-size:18px;}
 .modal-title-wrap{position:absolute;bottom:18px;left:28px;right:28px;z-index:2;}
@@ -170,37 +174,25 @@ img{display:block;max-width:100%;}
 .episode-loading{font-size:12.5px;color:var(--text-faint);padding:10px 0;}
 .note{font-size:11.5px;color:var(--text-faint);margin-top:18px;line-height:1.5;border-top:1px solid var(--border);padding-top:14px;}
 
-/* Player */
-.player-popup{position:fixed;inset:0;z-index:999;background:rgba(0,0,0,0.92);display:none;align-items:center;justify-content:center;backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);animation:fadeInPlayer .2s ease;}
+/* ===== CHANGE 1: Player — title on top, disclaimer below ===== */
+.player-popup{position:fixed;inset:0;z-index:999;background:rgba(0,0,0,0.92);display:none;flex-direction:column;align-items:center;justify-content:center;backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);animation:fadeInPlayer .2s ease;padding:20px 16px;}
 .player-popup.show{display:flex;}
 @keyframes fadeInPlayer{from{opacity:0}to{opacity:1}}
+/* Title above player */
+.player-top-bar{width:95vw;max-width:1280px;display:flex;align-items:center;justify-content:space-between;padding-bottom:12px;gap:12px;}
+.player-label{font-family:'Bebas Neue',sans-serif;font-size:22px;letter-spacing:1px;color:var(--text);opacity:.9;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;flex:1;}
+.player-close{width:36px;height:36px;border-radius:50%;background:rgba(30,30,34,0.95);border:1px solid rgba(255,255,255,0.15);display:flex;align-items:center;justify-content:center;font-size:16px;color:var(--text);cursor:pointer;flex-shrink:0;transition:background .2s,transform .15s;box-shadow:0 4px 16px rgba(0,0,0,0.5);}
+.player-close:hover{background:var(--accent);transform:scale(1.1);}
 .player-wrap{position:relative;width:95vw;max-width:1280px;aspect-ratio:16/9;background:#000;border-radius:12px;overflow:hidden;box-shadow:0 30px 80px rgba(0,0,0,0.9),0 0 0 1px rgba(255,255,255,0.06);}
 .player-wrap iframe{width:100%;height:100%;border:0;display:block;}
-.player-close{position:absolute;top:-14px;right:-14px;width:36px;height:36px;border-radius:50%;background:rgba(30,30,34,0.95);border:1px solid rgba(255,255,255,0.15);display:flex;align-items:center;justify-content:center;font-size:16px;color:var(--text);cursor:pointer;z-index:10;transition:background .2s,transform .15s;box-shadow:0 4px 16px rgba(0,0,0,0.5);}
-.player-close:hover{background:var(--accent);transform:scale(1.1);}
-.player-label{position:absolute;top:-44px;left:0;right:44px;font-family:'Bebas Neue',sans-serif;font-size:22px;letter-spacing:1px;color:var(--text);opacity:.85;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
-.player-source-note{position:absolute;bottom:-28px;left:0;font-size:11px;color:rgba(255,255,255,0.3);}
+/* Disclaimer below player */
+.player-disclaimer{width:95vw;max-width:1280px;margin-top:12px;padding:10px 16px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);border-radius:8px;display:flex;align-items:center;gap:10px;}
+.player-disclaimer-icon{flex-shrink:0;width:20px;height:20px;color:var(--gold);}
+.player-disclaimer-text{font-size:12.5px;color:rgba(255,255,255,0.6);line-height:1.5;}
+.player-disclaimer-text strong{color:rgba(255,255,255,0.85);font-weight:600;}
+.player-source-note{display:none;}/* hide old source note */
 
-/* Explore More button */
-.explore-btn-wrap{display:flex;justify-content:center;padding:24px 0 60px;}
-.explore-btn{
-  display:flex;align-items:center;gap:12px;
-  padding:16px 40px;border-radius:40px;
-  background:linear-gradient(135deg,rgba(224,38,59,0.15),rgba(224,38,59,0.05));
-  border:1px solid rgba(224,38,59,0.35);
-  color:var(--text);font-size:16px;font-weight:700;letter-spacing:.5px;
-  transition:all .3s;cursor:pointer;
-  box-shadow:0 0 0 0 rgba(224,38,59,0);
-}
-.explore-btn:hover{
-  background:linear-gradient(135deg,rgba(224,38,59,0.28),rgba(224,38,59,0.12));
-  border-color:var(--accent);
-  box-shadow:0 0 32px rgba(224,38,59,0.25);
-  transform:translateY(-2px);
-}
-.explore-btn svg{width:20px;height:20px;color:var(--accent);}
-
-/* Explore overlay */
+/* Explore overlay — z-index 500, modal is 600 so modal appears on top */
 .explore-overlay{
   position:fixed;inset:0;z-index:500;
   background:var(--bg);
@@ -236,6 +228,25 @@ img{display:block;max-width:100%;}
 @keyframes spin{to{transform:rotate(360deg)}}
 .explore-header-inner{flex:1;}
 
+/* Explore More button */
+.explore-btn-wrap{display:flex;justify-content:center;padding:24px 0 60px;}
+.explore-btn{
+  display:flex;align-items:center;gap:12px;
+  padding:16px 40px;border-radius:40px;
+  background:linear-gradient(135deg,rgba(224,38,59,0.15),rgba(224,38,59,0.05));
+  border:1px solid rgba(224,38,59,0.35);
+  color:var(--text);font-size:16px;font-weight:700;letter-spacing:.5px;
+  transition:all .3s;cursor:pointer;
+  box-shadow:0 0 0 0 rgba(224,38,59,0);
+}
+.explore-btn:hover{
+  background:linear-gradient(135deg,rgba(224,38,59,0.28),rgba(224,38,59,0.12));
+  border-color:var(--accent);
+  box-shadow:0 0 32px rgba(224,38,59,0.25);
+  transform:translateY(-2px);
+}
+.explore-btn svg{width:20px;height:20px;color:var(--accent);}
+
 /* Toast */
 .toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(20px);background:#fff;color:#000;padding:11px 20px;border-radius:8px;font-size:13.5px;font-weight:600;opacity:0;transition:opacity .25s,transform .25s;z-index:1300;box-shadow:var(--shadow);}
 .toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
@@ -258,17 +269,25 @@ img{display:block;max-width:100%;}
   .cw-card{width:220px;}
   .search-panel{width:86vw;right:-8px;}
   .top10-rank{font-size:78px;margin-right:-16px;top:10px;}
-  .modal{height:96vh;}
+  /* CHANGE 4: mobile modal — full height, all content scrollable */
+  .modal{height:96vh;max-height:96vh;}
+  .modal-drag-handle{padding:14px 0 10px;} /* slightly bigger grab area */
   .modal-title-wrap{left:18px;right:18px;}
-  .modal-body{padding:8px 18px 26px;}
+  .modal-body{padding:8px 18px 40px;} /* extra bottom padding for safe area */
   .episode-still{width:88px;}
   body{padding-bottom:64px;}
   .bottom-nav{display:flex;}
   .toast{bottom:80px;}
-  .player-wrap{width:100vw;border-radius:0;}
-  .player-close{top:8px;right:8px;}
-  .player-label{display:none;}
+  /* CHANGE 1: player on mobile */
+  .player-popup{padding:12px 0 0;}
+  .player-top-bar{width:100vw;padding:0 12px 10px;max-width:100vw;}
+  .player-wrap{width:100vw;border-radius:0;max-width:100vw;}
+  .player-disclaimer{width:100vw;max-width:100vw;border-radius:0;margin-top:0;}
   .explore-grid{grid-template-columns:repeat(auto-fill,minmax(110px,1fr));}
+  /* CHANGE 4: episode items on mobile keep readable layout */
+  .episode-item{flex-wrap:nowrap;}
+  /* make modal hero image shorter on very small phones to leave more room for content */
+  .modal-hero{aspect-ratio:16/10;}
 }
 
 /* ===== Intro animation ===== */
@@ -481,21 +500,36 @@ netflixintro[letter="X"] .helper-2 .effect-brush{animation:brush-moving 2s .5s f
   </button>
 </nav>
 
+<!-- CHANGE 2: modal-backdrop z-index is 600 (above explore overlay at 500) -->
 <div class="modal-backdrop" id="modalBackdrop">
   <div class="modal" id="modal"></div>
 </div>
 
-<!-- Player Popup -->
+<!-- CHANGE 1: Player Popup — restructured with title bar on top and disclaimer below -->
 <div class="player-popup" id="playerPopup">
-  <div class="player-wrap" id="playerWrap">
+  <!-- Title bar above the player -->
+  <div class="player-top-bar">
     <div class="player-label" id="playerLabel"></div>
     <button class="player-close" id="playerClose" title="Close">✕</button>
+  </div>
+  <!-- The player itself -->
+  <div class="player-wrap" id="playerWrap">
     <iframe id="playerIframe" src="" allowfullscreen allow="autoplay; encrypted-media; fullscreen; picture-in-picture"></iframe>
-    <div class="player-source-note">Streaming via vidfast.pro · third-party source</div>
+  </div>
+  <!-- Disclaimer below the player -->
+  <div class="player-disclaimer">
+    <svg class="player-disclaimer-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+      <circle cx="12" cy="12" r="10"/>
+      <line x1="12" y1="8" x2="12" y2="12"/>
+      <line x1="12" y1="16" x2="12.01" y2="16"/>
+    </svg>
+    <span class="player-disclaimer-text">
+      <strong>Heads up:</strong> The first thing you click on the player will redirect you to a new page — don't worry, it's safe.
+    </span>
   </div>
 </div>
 
-<!-- Explore Overlay -->
+<!-- Explore Overlay — z-index 500, modal appears on top at 600 -->
 <div class="explore-overlay" id="exploreOverlay">
   <div class="explore-header">
     <div class="explore-header-inner">
@@ -526,7 +560,7 @@ netflixintro[letter="X"] .helper-2 .effect-brush{animation:brush-moving 2s .5s f
 <div class="toast" id="toast"></div>
 
 <script>
-/* ===== Intro ===== */
+/* ===== Intro — N only ===== */
 (function(){
   const FUR=31,LAMP=28;
   const brush=()=>{let s='';for(let i=FUR;i>=1;i--)s+=`<span class="fur-${i}"></span>`;return`<div class="effect-brush">${s}</div>`;}
@@ -535,19 +569,17 @@ netflixintro[letter="X"] .helper-2 .effect-brush{animation:brush-moving 2s .5s f
   const el=document.getElementById('netflixIntroEl'),ov=document.getElementById('introOverlay');
   if(!el||!ov)return;
   el.innerHTML=helper(1)+helper(2)+helper(3)+helper(4);
+  el.setAttribute('letter','N');
   document.body.style.overflow='hidden';
-  const L=['N','E','T','F','L','I','X'];let i=0;
-  const cy=setInterval(()=>{i++;if(i<L.length)el.setAttribute('letter',L[i]);else clearInterval(cy);},380);
   setTimeout(()=>{
     ov.classList.add('fade-out');
     setTimeout(()=>{ov.remove();document.body.style.overflow='';},650);
-  },4200);
+  },2800);
 })();
 
 /* ===== App ===== */
 const TMDB_KEY='b1941699110de014fceb3d15828f4718';
 const BASE='https://api.themoviedb.org/3';
-const IMDB_BASE='https://api.imdbapi.dev';
 const IMG_POSTER='https://image.tmdb.org/t/p/w400';
 const IMG_BACKDROP='https://image.tmdb.org/t/p/w1280';
 const IMG_BACKDROP_SM='https://image.tmdb.org/t/p/w780';
@@ -600,6 +632,7 @@ function renderCWRow(){
     card.className='cw-card';
     const thumb=imgUrl(item.backdrop_path||item.poster_path,IMG_BACKDROP_SM);
     const pct=Math.min(Math.max(item.progress||10,5),95);
+    /* CHANGE 3: removed percentage text from .cw-sub — only show media type */
     card.innerHTML=`
       <div class="cw-thumb">
         ${thumb?`<img loading="lazy" src="${thumb}" alt="${item.title||item.name}">`:'<div class="cw-thumb-fallback">'+(item.title||item.name)+'</div>'}
@@ -610,7 +643,7 @@ function renderCWRow(){
       </div>
       <div class="cw-info">
         <div class="cw-title">${item.title||item.name||'Untitled'}</div>
-        <div class="cw-sub">${type==='tv'?(item.lastEp||'Season 1'):'Movie'} · ${pct}% watched</div>
+        <div class="cw-sub">${type==='tv'?(item.lastEp||'Season 1'):'Movie'}</div>
       </div>
       <button class="cw-remove" title="Remove" data-id="${item.id}" data-type="${type}">✕</button>`;
     card.querySelector('.cw-play-overlay').addEventListener('click',()=>{
@@ -644,6 +677,7 @@ function showToast(msg){
 }
 
 /* ===== Player ===== */
+/* CHANGE 1: openPlayer sets title in the top bar */
 function openPlayer(url,label,cwItem){
   const popup=document.getElementById('playerPopup');
   document.getElementById('playerIframe').src=url;
@@ -747,7 +781,10 @@ function setHero(i){
   document.getElementById('heroInfoBtn').onclick=()=>openModal(item.id,mType(item));
 }
 
-/* ===== Modal ===== */
+/* ===== Modal =====
+   CHANGE 2: modal-backdrop z-index is 600 (set in CSS), explore is 500
+   So the modal naturally appears on top of the explore overlay.
+   openModal works the same way from both the explore overlay and main page. */
 async function openModal(id,type,opts={}){
   const bd=document.getElementById('modalBackdrop'),modal=document.getElementById('modal');
   modal.innerHTML=`<div class="modal-drag-handle" id="modalDragHandle"><div class="bar"></div></div><div class="modal-scroll" style="display:flex;align-items:center;justify-content:center;"><div style="padding:80px;text-align:center;color:var(--text-dim);">Loading…</div></div>`;
@@ -872,21 +909,45 @@ function closeModal(){
   document.getElementById('modalBackdrop').classList.remove('show');
   document.getElementById('modalBackdrop').style.background='';
   const m=document.getElementById('modal');m.innerHTML='';m.style.transform='';m.style.transition='';
-  if(!document.getElementById('playerPopup').classList.contains('show'))document.body.style.overflow='';
+  /* CHANGE 4: restore scroll correctly — only unlock body if player and explore are also closed */
+  if(!document.getElementById('playerPopup').classList.contains('show')&&
+     !document.getElementById('exploreOverlay').classList.contains('show')){
+    document.body.style.overflow='';
+  }
 }
 document.getElementById('modalBackdrop').addEventListener('click',e=>{if(e.target.id==='modalBackdrop')closeModal();});
 
-/* modal swipe */
+/* CHANGE 4: modal swipe to close — drag handle touch/pointer events */
 let md={active:false,startY:0,deltaY:0};
-document.addEventListener('pointerdown',e=>{const h=document.getElementById('modalDragHandle');if(h&&(e.target===h||h.contains(e.target))){md={active:true,startY:e.clientY,deltaY:0};document.getElementById('modal').style.transition='none';}});
-document.addEventListener('pointermove',e=>{if(!md.active)return;const d=e.clientY-md.startY;if(d<0)return;md.deltaY=d;document.getElementById('modal').style.transform=`translateY(${d}px)`;document.getElementById('modalBackdrop').style.background=`rgba(0,0,0,${Math.max(0.7-d/500,0)})`;});
-document.addEventListener('pointerup',()=>{if(!md.active)return;const m=document.getElementById('modal');m.style.transition='transform .25s ease';if(md.deltaY>120){m.style.transform='translateY(100%)';setTimeout(closeModal,200);}else{m.style.transform='translateY(0)';document.getElementById('modalBackdrop').style.background='';}md={active:false,startY:0,deltaY:0};});
+document.addEventListener('pointerdown',e=>{
+  const h=document.getElementById('modalDragHandle');
+  if(h&&(e.target===h||h.contains(e.target))){
+    md={active:true,startY:e.clientY,deltaY:0};
+    document.getElementById('modal').style.transition='none';
+  }
+});
+document.addEventListener('pointermove',e=>{
+  if(!md.active)return;
+  const d=e.clientY-md.startY;
+  if(d<0)return;
+  md.deltaY=d;
+  document.getElementById('modal').style.transform=`translateY(${d}px)`;
+  document.getElementById('modalBackdrop').style.background=`rgba(0,0,0,${Math.max(0.7-d/500,0)})`;
+});
+document.addEventListener('pointerup',()=>{
+  if(!md.active)return;
+  const m=document.getElementById('modal');
+  m.style.transition='transform .25s ease';
+  if(md.deltaY>120){m.style.transform='translateY(100%)';setTimeout(closeModal,200);}
+  else{m.style.transform='translateY(0)';document.getElementById('modalBackdrop').style.background='';}
+  md={active:false,startY:0,deltaY:0};
+});
 document.addEventListener('pointercancel',()=>{md={active:false,startY:0,deltaY:0};});
 
 /* nav scroll */
 window.addEventListener('scroll',()=>document.getElementById('nav').classList.toggle('scrolled',window.scrollY>30));
 
-/* ===== Explore Overlay with IMDb API & infinite scroll ===== */
+/* ===== Explore Overlay with infinite scroll ===== */
 let exploreFilter='trending',explorePage=1,exploreLoading=false,exploreHasMore=true,exploreObserver=null;
 
 const IMDB_FILTERS={
@@ -902,8 +963,6 @@ const IMDB_FILTERS={
   animation:{fn:()=>tmdb('/discover/movie',{with_genres:16,sort_by:'popularity.desc',page:explorePage}),type:'movie'},
 };
 
-function skelsN(n){let s='';for(let i=0;i<n;i++)s+=`<div class="explore-skel"></div>`;return s;}
-
 async function loadExplorePage(){
   if(exploreLoading||!exploreHasMore)return;
   exploreLoading=true;
@@ -917,6 +976,7 @@ async function loadExplorePage(){
     items.forEach(item=>{
       const type=item.media_type||cfg.type||'movie';
       item.media_type=type;
+      /* CHANGE 2: cards in explore grid open the modal on click (same cardEl function) */
       grid.appendChild(cardEl(item));
     });
     explorePage++;
@@ -942,7 +1002,11 @@ function openExplore(){
 }
 function closeExplore(){
   document.getElementById('exploreOverlay').classList.remove('show');
-  if(!document.getElementById('playerPopup').classList.contains('show'))document.body.style.overflow='';
+  /* CHANGE 4: only restore scroll if modal and player are also closed */
+  if(!document.getElementById('playerPopup').classList.contains('show')&&
+     !document.getElementById('modalBackdrop').classList.contains('show')){
+    document.body.style.overflow='';
+  }
 }
 
 document.getElementById('exploreBtn').addEventListener('click',openExplore);
