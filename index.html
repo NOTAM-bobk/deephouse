@@ -228,6 +228,33 @@ img{display:block;max-width:100%;}
 @keyframes spin{to{transform:rotate(360deg)}}
 .explore-header-inner{flex:1;}
 
+/* ===== StreamFinder Platform Selector ===== */
+.sf-section{padding:0 4vw;margin-bottom:38px;}
+.sf-section-label{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.15em;color:var(--text-faint);margin-bottom:14px;}
+.sf-providers-wrap{position:relative;}
+.sf-fade-l{pointer-events:none;position:absolute;left:0;top:0;bottom:0;width:40px;z-index:1;background:linear-gradient(to right,var(--bg),transparent);}
+.sf-fade-r{pointer-events:none;position:absolute;right:0;top:0;bottom:0;width:40px;z-index:1;background:linear-gradient(to left,var(--bg),transparent);}
+.sf-providers{display:flex;gap:14px;overflow-x:auto;padding:4px 2px 10px;scrollbar-width:none;}
+.sf-providers::-webkit-scrollbar{display:none;}
+.sf-provider-btn{flex-shrink:0;display:flex;flex-direction:column;align-items:center;gap:7px;width:76px;background:none;border:none;cursor:pointer;padding:0;}
+.sf-provider-tile{width:68px;height:68px;border-radius:14px;overflow:hidden;background:var(--card);border:1.5px solid var(--border);position:relative;transition:border-color .25s,box-shadow .25s,transform .25s;}
+.sf-provider-btn:hover .sf-provider-tile{transform:translateY(-2px);}
+.sf-provider-tile img{width:100%;height:100%;object-fit:cover;transition:opacity .25s,filter .25s;}
+.sf-provider-fallback{width:100%;height:100%;display:flex;align-items:center;justify-content:center;font-family:'Bebas Neue',sans-serif;font-size:22px;font-weight:700;}
+.sf-provider-name{font-size:10.5px;font-weight:600;color:var(--text-faint);letter-spacing:.02em;white-space:nowrap;transition:color .25s;}
+.sf-provider-dot{width:5px;height:5px;border-radius:50%;opacity:0;transform:scale(0);transition:opacity .25s,transform .25s;}
+.sf-provider-btn.active .sf-provider-name{color:var(--text);}
+.sf-provider-btn.active .sf-provider-dot{opacity:1;transform:scale(1);}
+.sf-provider-btn.active .sf-provider-tile img{opacity:1;filter:saturate(1);}
+.sf-provider-btn:not(.active) .sf-provider-tile img{opacity:.45;filter:saturate(.3);}
+.sf-provider-btn:hover:not(.active) .sf-provider-tile img{opacity:.8;filter:saturate(.8);}
+.sf-results-row{margin-bottom:38px;}
+.sf-row-head{display:flex;align-items:baseline;justify-content:space-between;padding:0 4vw;margin-bottom:12px;}
+.sf-results-count{font-size:11px;font-weight:600;color:var(--text-faint);}
+.sf-load-status{display:flex;align-items:center;justify-content:center;gap:10px;padding:20px 4vw;color:var(--text-dim);font-size:13px;}
+.sf-spinner{width:22px;height:22px;border:2px solid var(--border);border-top-color:var(--accent);border-radius:50%;animation:spin .7s linear infinite;flex-shrink:0;}
+.sf-end-msg{text-align:center;padding:16px 4vw;font-size:12.5px;color:var(--text-faint);}
+
 /* Explore More button */
 .explore-btn-wrap{display:flex;justify-content:center;padding:24px 0 60px;}
 .explore-btn{
@@ -466,6 +493,29 @@ netflixintro[letter="X"] .helper-2 .effect-brush{animation:brush-moving 2s .5s f
 </header>
 
 <main class="rows" id="rows"></main>
+
+<!-- ===== StreamFinder: Browse by Platform ===== -->
+<section id="sf-section" class="sf-section" style="display:none;">
+  <div class="sf-section-label">Browse by Platform &middot; US</div>
+  <div class="sf-providers-wrap">
+    <div class="sf-fade-l"></div>
+    <div class="sf-fade-r"></div>
+    <div class="sf-providers" id="sfProviders"></div>
+  </div>
+</section>
+
+<div class="sf-results-row" id="sfResultsRow" style="display:none;">
+  <div class="sf-row-head">
+    <div class="row-title" id="sfRowTitle">On Platform</div>
+    <div class="sf-results-count" id="sfResultsCount"></div>
+  </div>
+  <div class="row-track" id="sfResultsTrack" style="padding-left:4vw;padding-right:4vw;"></div>
+  <div class="sf-load-status" id="sfLoadStatus" style="display:none;">
+    <div class="sf-spinner"></div><span>Loading more…</span>
+  </div>
+  <div class="sf-end-msg" id="sfEndMsg" style="display:none;">You've seen everything on this platform right now.</div>
+  <div id="sfSentinel" style="height:1px;"></div>
+</div>
 
 <div class="explore-btn-wrap" id="exploreBtnWrap">
   <button class="explore-btn" id="exploreBtn">
@@ -1114,6 +1164,8 @@ async function loadTop10(){
       wrap.appendChild(rank);wrap.appendChild(cardEl(item));track.appendChild(wrap);
     });
   }catch(e){track.innerHTML=`<div class="empty-row">Couldn't load Top 10.</div>`;}
+  // Launch StreamFinder section after Top 10 is done
+  sfInit();
 }
 
 /* ===== Boot ===== */
@@ -1133,7 +1185,177 @@ async function init(){
   loadRow('Horror','row-horror',()=>tmdb('/discover/movie',{with_genres:27,sort_by:'popularity.desc'}),'movie');
   loadRow('Animation','row-animation',()=>tmdb('/discover/movie',{with_genres:16,sort_by:'popularity.desc'}),'movie');
 }
+/* ===== StreamFinder: Browse by Platform ===== */
+const SF_API_KEY = 'b1941699110de014fceb3d15828f4718';
+
+const sfProviderDefs = [
+  { label:'Netflix',     hex:'#E50914', matchNames:['netflix'] },
+  { label:'Prime Video', hex:'#00A8E1', matchNames:['amazonprimevideo','primevideo','amazonvideo'] },
+  { label:'Hulu',        hex:'#1CE783', matchNames:['hulu'] },
+  { label:'Disney+',     hex:'#2D6BFF', matchNames:['disneyplus'] },
+  { label:'Max',         hex:'#6B5BFF', matchNames:['max','hbomax'] },
+  { label:'Apple TV+',   hex:'#C7C7C7', matchNames:['appletvplus'] },
+  { label:'Paramount+',  hex:'#3B8CFF', matchNames:['paramountplus'] },
+  { label:'Peacock',     hex:'#F2C200', matchNames:['peacock','peacockpremium'] },
+  { label:'Tubi',        hex:'#FF4F00', matchNames:['tubi','tubitv'] },
+  { label:'Pluto TV',    hex:'#FF4FA3', matchNames:['plutotv'] },
+  { label:'Crunchyroll', hex:'#F78C25', matchNames:['crunchyroll'] },
+  { label:'Plex',        hex:'#EBAA14', matchNames:['plex'] }
+];
+
+let sfProviders = [];
+let sfCurrentProvider = null;
+let sfLoadingMore = false;
+let sfScrollObserver = null;
+const sfCache = {};
+
+function sfNorm(s){ return (s||'').toLowerCase().replace(/\+/g,'plus').replace(/[^a-z0-9]/g,''); }
+
+function sfGetState(id){
+  if(!sfCache[id]) sfCache[id]={items:[],moviePage:0,tvPage:0,movieTotalPages:Infinity,tvTotalPages:Infinity,loaded:false};
+  return sfCache[id];
+}
+
+async function sfResolveProviders(){
+  try{
+    const [mr,tr]=await Promise.all([
+      fetch(`https://api.themoviedb.org/3/watch/providers/movie?api_key=${SF_API_KEY}&watch_region=US`),
+      fetch(`https://api.themoviedb.org/3/watch/providers/tv?api_key=${SF_API_KEY}&watch_region=US`)
+    ]);
+    const [md,td]=await Promise.all([mr.json(),tr.json()]);
+    const combined=[...(md.results||[]),...(td.results||[])];
+    const byId={};
+    combined.forEach(p=>{if(!byId[p.provider_id]||(!byId[p.provider_id].logo_path&&p.logo_path))byId[p.provider_id]=p;});
+    const all=Object.values(byId);
+    sfProviders=sfProviderDefs.map(def=>{
+      let match=null;
+      for(const w of def.matchNames){match=all.find(p=>sfNorm(p.provider_name)===w);if(match)break;}
+      if(!match)match=all.find(p=>def.matchNames.some(w=>sfNorm(p.provider_name).includes(w)));
+      return match?{id:match.provider_id,name:def.label,hex:def.hex,logoPath:match.logo_path||null}:null;
+    }).filter(Boolean);
+  }catch(e){console.error('SF provider resolve failed',e);}
+}
+
+function sfRenderProviders(){
+  const container=document.getElementById('sfProviders');
+  container.innerHTML='';
+  sfProviders.forEach(p=>{
+    const isActive=p.id===sfCurrentProvider;
+    const btn=document.createElement('button');
+    btn.className='sf-provider-btn'+(isActive?' active':'');
+    btn.setAttribute('aria-pressed',isActive);
+    btn.setAttribute('aria-label','Show titles on '+p.name);
+    const imgHtml=p.logoPath
+      ? `<img src="https://image.tmdb.org/t/p/w154${p.logoPath}" alt="${p.name}" loading="lazy" onerror="this.style.display='none';this.nextElementSibling.style.display='flex';">
+         <div class="sf-provider-fallback" style="color:${p.hex};background:${p.hex}22;display:none;">${p.name.charAt(0)}</div>`
+      : `<div class="sf-provider-fallback" style="color:${p.hex};background:${p.hex}22;">${p.name.charAt(0)}</div>`;
+    btn.innerHTML=`
+      <div class="sf-provider-tile" style="${isActive?`border-color:${p.hex};box-shadow:0 0 0 1px rgba(255,255,255,.08),0 8px 24px -6px ${p.hex}80`:''}">${imgHtml}</div>
+      <div class="sf-provider-name">${p.name}</div>
+      <div class="sf-provider-dot" style="background:${p.hex}"></div>`;
+    btn.addEventListener('click',()=>{
+      if(p.id===sfCurrentProvider)return;
+      sfCurrentProvider=p.id;
+      sfRenderProviders();
+      sfFetchList();
+    });
+    container.appendChild(btn);
+  });
+}
+
+function sfFetchList(){
+  const state=sfGetState(sfCurrentProvider);
+  const track=document.getElementById('sfResultsTrack');
+  const rowTitle=document.getElementById('sfRowTitle');
+  const prov=sfProviders.find(p=>p.id===sfCurrentProvider);
+  if(prov)rowTitle.textContent=`Streaming on ${prov.name}`;
+  document.getElementById('sfEndMsg').style.display='none';
+  document.getElementById('sfLoadStatus').style.display='none';
+  document.getElementById('sfResultsRow').style.display='';
+
+  if(state.loaded){
+    track.innerHTML='';
+    state.items.forEach(item=>track.appendChild(cardEl(item)));
+    sfUpdateCount(state.items.length);
+    if(state.moviePage>=state.movieTotalPages&&state.tvPage>=state.tvTotalPages)
+      document.getElementById('sfEndMsg').style.display='';
+    return;
+  }
+  // Skeleton
+  track.innerHTML='';
+  for(let i=0;i<10;i++){const s=document.createElement('div');s.className='skel';track.appendChild(s);}
+  sfUpdateCount(0);
+  sfLoadPage(sfCurrentProvider,true);
+}
+
+function sfUpdateCount(n){
+  document.getElementById('sfResultsCount').textContent=n?`${n} title${n===1?'':'s'} loaded`:'';
+}
+
+async function sfLoadPage(providerId,isInitial){
+  const state=sfGetState(providerId);
+  if(sfLoadingMore)return;
+  const done=state.loaded&&state.moviePage>=state.movieTotalPages&&state.tvPage>=state.tvTotalPages;
+  if(done)return;
+  sfLoadingMore=true;
+  if(!isInitial)document.getElementById('sfLoadStatus').style.display='flex';
+
+  const nm=state.moviePage+1, nt=state.tvPage+1;
+  const canM=nm<=state.movieTotalPages, canT=nt<=state.tvTotalPages;
+  try{
+    const [md,td]=await Promise.all([
+      canM?fetch(`https://api.themoviedb.org/3/discover/movie?api_key=${SF_API_KEY}&watch_region=US&with_watch_providers=${providerId}&sort_by=popularity.desc&page=${nm}`).then(r=>r.json()):Promise.resolve(null),
+      canT?fetch(`https://api.themoviedb.org/3/discover/tv?api_key=${SF_API_KEY}&watch_region=US&with_watch_providers=${providerId}&sort_by=popularity.desc&page=${nt}`).then(r=>r.json()):Promise.resolve(null)
+    ]);
+    if(md){state.moviePage=nm;state.movieTotalPages=Math.min(md.total_pages||nm,500);}
+    if(td){state.tvPage=nt;state.tvTotalPages=Math.min(td.total_pages||nt,500);}
+    const movies=(md?md.results||[]:[]).map(m=>({...m,media_type:'movie'}));
+    const shows=(td?td.results||[]:[]).map(t=>({...t,media_type:'tv'}));
+    const combined=[];
+    const max=Math.max(movies.length,shows.length);
+    for(let i=0;i<max;i++){if(movies[i])combined.push(movies[i]);if(shows[i])combined.push(shows[i]);}
+    state.items.push(...combined);
+    state.loaded=true;
+    if(providerId===sfCurrentProvider){
+      const track=document.getElementById('sfResultsTrack');
+      if(isInitial){track.innerHTML='';state.items.forEach(item=>track.appendChild(cardEl(item)));}
+      else combined.forEach(item=>track.appendChild(cardEl(item)));
+      sfUpdateCount(state.items.length);
+      document.getElementById('sfLoadStatus').style.display='none';
+      if(state.moviePage>=state.movieTotalPages&&state.tvPage>=state.tvTotalPages)
+        document.getElementById('sfEndMsg').style.display='';
+    }
+  }catch(e){
+    console.error('SF load error',e);
+    document.getElementById('sfLoadStatus').style.display='none';
+  }finally{sfLoadingMore=false;}
+}
+
+function sfSetupScroll(){
+  const sentinel=document.getElementById('sfSentinel');
+  sfScrollObserver=new IntersectionObserver(entries=>{
+    entries.forEach(entry=>{
+      if(!entry.isIntersecting||sfLoadingMore||!sfCurrentProvider)return;
+      const state=sfGetState(sfCurrentProvider);
+      const done=state.loaded&&state.moviePage>=state.movieTotalPages&&state.tvPage>=state.tvTotalPages;
+      if(!done)sfLoadPage(sfCurrentProvider,false);
+    });
+  },{rootMargin:'600px 0px 0px 0px'});
+  sfScrollObserver.observe(sentinel);
+}
+
+async function sfInit(){
+  await sfResolveProviders();
+  if(!sfProviders.length)return;
+  sfCurrentProvider=sfProviders[0].id;
+  document.getElementById('sf-section').style.display='';
+  sfRenderProviders();
+  sfFetchList();
+  sfSetupScroll();
+}
+
 init();
+
 </script>
 </body>
 </html>
