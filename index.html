@@ -129,17 +129,27 @@ img{display:block;max-width:100%;}
 .search-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:16px;}
 .search-heading{font-size:22px;font-family:'Bebas Neue';letter-spacing:1px;margin-bottom:18px;}
 
-/* Modal — CHANGE 4: z-index raised above explore overlay (500), set to 600 */
+/* Modal — dynamic height, swipe-to-close on mobile */
 .modal-backdrop{position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:600;display:none;align-items:flex-end;justify-content:center;padding:0;transition:background .2s;}
 .modal-backdrop.show{display:flex;}
-.modal{width:100%;max-width:880px;background:var(--bg-elev);border-radius:20px 20px 0 0;overflow:hidden;box-shadow:var(--shadow);border:1px solid var(--border);border-bottom:none;display:flex;flex-direction:column;animation:riseUp .32s cubic-bezier(.22,.8,.25,1);
-  /* CHANGE 4: ensure modal fills available height correctly on mobile */
-  height:94vh;max-height:94vh;}
+.modal{
+  width:100%;max-width:880px;
+  background:var(--bg-elev);
+  border-radius:20px 20px 0 0;
+  overflow:hidden;
+  box-shadow:var(--shadow);
+  border:1px solid var(--border);
+  border-bottom:none;
+  display:flex;flex-direction:column;
+  animation:riseUp .32s cubic-bezier(.22,.8,.25,1);
+  /* Dynamic height: fits content up to 94vh */
+  max-height:94vh;
+  height:auto;
+}
 @keyframes riseUp{from{transform:translateY(100%)}to{transform:translateY(0)}}
-.modal-drag-handle{flex-shrink:0;display:flex;justify-content:center;padding:12px 0 8px;cursor:grab;touch-action:none;}
+.modal-drag-handle{flex-shrink:0;display:flex;justify-content:center;padding:12px 0 8px;cursor:grab;touch-action:none;user-select:none;}
 .modal-drag-handle .bar{width:42px;height:4px;border-radius:3px;background:var(--text-faint);opacity:.6;}
-/* CHANGE 4: modal-scroll must be scrollable and fill remaining space */
-.modal-scroll{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;overscroll-behavior:contain;}
+.modal-scroll{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;overscroll-behavior:contain;min-height:0;}
 .modal-hero{position:relative;aspect-ratio:16/8;background-size:cover;background-position:center;flex-shrink:0;}
 .modal-hero::after{content:'';position:absolute;inset:0;background:linear-gradient(180deg,rgba(10,10,12,.1),var(--bg-elev) 95%);}
 .modal-close{position:absolute;top:14px;right:14px;z-index:5;width:34px;height:34px;border-radius:50%;background:rgba(10,10,12,.75);display:flex;align-items:center;justify-content:center;font-size:18px;}
@@ -255,6 +265,52 @@ img{display:block;max-width:100%;}
 .sf-spinner{width:22px;height:22px;border:2px solid var(--border);border-top-color:var(--accent);border-radius:50%;animation:spin .7s linear infinite;flex-shrink:0;}
 .sf-end-msg{text-align:center;padding:16px 4vw;font-size:12.5px;color:var(--text-faint);}
 
+/* More Like This */
+.more-like-this{margin-top:24px;padding-top:20px;border-top:1px solid var(--border);}
+.mlt-label{font-size:12px;color:var(--text-faint);text-transform:uppercase;letter-spacing:1.5px;margin-bottom:12px;}
+.mlt-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(100px,1fr));gap:10px;}
+.mlt-card{position:relative;aspect-ratio:2/3;border-radius:7px;overflow:hidden;background:var(--card);cursor:pointer;border:1px solid var(--border);transition:transform .2s,box-shadow .2s;}
+.mlt-card:hover{transform:scale(1.06) translateY(-3px);box-shadow:var(--shadow),0 0 0 2px var(--accent);}
+.mlt-card img{width:100%;height:100%;object-fit:cover;}
+.mlt-card-title{position:absolute;bottom:0;left:0;right:0;padding:6px;font-size:10.5px;font-weight:600;background:linear-gradient(0deg,rgba(0,0,0,.9),transparent);line-clamp:2;-webkit-line-clamp:2;display:-webkit-box;-webkit-box-orient:vertical;overflow:hidden;}
+.mlt-skel{aspect-ratio:2/3;border-radius:7px;background:linear-gradient(100deg,var(--card) 30%,var(--card-hover) 50%,var(--card) 70%);background-size:200% 100%;animation:shimmer 1.4s infinite;}
+
+/* Row ">" expand button */
+.row-expand-btn{
+  display:inline-flex;align-items:center;gap:4px;
+  margin-left:10px;padding:3px 10px;
+  border-radius:14px;font-size:11px;font-weight:700;
+  color:var(--text-dim);border:1px solid var(--border);
+  transition:color .2s,border-color .2s,background .2s;cursor:pointer;
+  vertical-align:middle;flex-shrink:0;
+}
+.row-expand-btn:hover{color:var(--text);border-color:rgba(255,255,255,.25);background:rgba(255,255,255,.06);}
+.row-expand-btn svg{width:10px;height:10px;}
+
+/* Category Expand Overlay — z-index 480, below modal/explore */
+.cat-overlay{
+  position:fixed;inset:0;z-index:480;
+  background:var(--bg);
+  display:none;flex-direction:column;
+  overflow:hidden;
+}
+.cat-overlay.show{display:flex;animation:slideUpOverlay .38s cubic-bezier(.22,.8,.25,1);}
+.cat-header{
+  flex-shrink:0;display:flex;align-items:center;justify-content:space-between;
+  padding:20px 4vw 14px;
+  border-bottom:1px solid var(--border);
+  background:rgba(10,10,12,0.92);
+  backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);
+}
+.cat-title{font-family:'Bebas Neue',sans-serif;font-size:26px;letter-spacing:2px;color:var(--text);}
+.cat-close{width:36px;height:36px;border-radius:50%;background:rgba(255,255,255,.08);display:flex;align-items:center;justify-content:center;font-size:17px;flex-shrink:0;transition:background .2s;}
+.cat-close:hover{background:var(--accent);}
+.cat-scroll{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:20px 4vw;}
+.cat-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:14px;}
+.cat-skel{aspect-ratio:2/3;border-radius:8px;background:linear-gradient(100deg,var(--card) 30%,var(--card-hover) 50%,var(--card) 70%);background-size:200% 100%;animation:shimmer 1.4s infinite;}
+.cat-load-trigger{height:60px;display:flex;align-items:center;justify-content:center;margin-top:12px;}
+.cat-spinner{width:26px;height:26px;border:2px solid var(--border);border-top-color:var(--accent);border-radius:50%;animation:spin .7s linear infinite;display:none;}
+
 /* Explore More button */
 .explore-btn-wrap{display:flex;justify-content:center;padding:24px 0 60px;}
 .explore-btn{
@@ -296,24 +352,22 @@ img{display:block;max-width:100%;}
   .cw-card{width:220px;}
   .search-panel{width:86vw;right:-8px;}
   .top10-rank{font-size:78px;margin-right:-16px;top:10px;}
-  /* CHANGE 4: mobile modal — full height, all content scrollable */
-  .modal{height:96vh;max-height:96vh;}
-  .modal-drag-handle{padding:14px 0 10px;} /* slightly bigger grab area */
+  /* Mobile modal: dynamic height, scrollable content */
+  .modal{max-height:96vh;height:auto;}
+  .modal-drag-handle{padding:14px 0 10px;}
   .modal-title-wrap{left:18px;right:18px;}
-  .modal-body{padding:8px 18px 40px;} /* extra bottom padding for safe area */
+  .modal-body{padding:8px 18px 40px;}
   .episode-still{width:88px;}
   body{padding-bottom:64px;}
   .bottom-nav{display:flex;}
   .toast{bottom:80px;}
-  /* CHANGE 1: player on mobile */
+  /* player on mobile */
   .player-popup{padding:12px 0 0;}
   .player-top-bar{width:100vw;padding:0 12px 10px;max-width:100vw;}
   .player-wrap{width:100vw;border-radius:0;max-width:100vw;}
   .player-disclaimer{width:100vw;max-width:100vw;border-radius:0;margin-top:0;}
   .explore-grid{grid-template-columns:repeat(auto-fill,minmax(110px,1fr));}
-  /* CHANGE 4: episode items on mobile keep readable layout */
   .episode-item{flex-wrap:nowrap;}
-  /* make modal hero image shorter on very small phones to leave more room for content */
   .modal-hero{aspect-ratio:16/10;}
 }
 
@@ -607,6 +661,20 @@ netflixintro[letter="X"] .helper-2 .effect-brush{animation:brush-moving 2s .5s f
   </div>
 </div>
 
+<!-- Category Expand Overlay -->
+<div class="cat-overlay" id="catOverlay">
+  <div class="cat-header">
+    <div class="cat-title" id="catOverlayTitle"></div>
+    <button class="cat-close" id="catOverlayClose">✕</button>
+  </div>
+  <div class="cat-scroll" id="catScroll">
+    <div class="cat-grid" id="catGrid"></div>
+    <div class="cat-load-trigger" id="catLoadTrigger">
+      <div class="cat-spinner" id="catSpinner"></div>
+    </div>
+  </div>
+</div>
+
 <div class="toast" id="toast"></div>
 
 <script>
@@ -634,15 +702,48 @@ const IMG_POSTER='https://image.tmdb.org/t/p/w400';
 const IMG_BACKDROP='https://image.tmdb.org/t/p/w1280';
 const IMG_BACKDROP_SM='https://image.tmdb.org/t/p/w780';
 
+/* ===== Perf: request dedup + concurrency limiter + response cache ===== */
+const _tmdbCache=new Map();
+const _tmdbInFlight=new Map();
+const _tmdbQueue=[];
+let _tmdbActive=0;
+const TMDB_CONCURRENCY=4;
+
+function _tmdbDrain(){
+  while(_tmdbActive<TMDB_CONCURRENCY&&_tmdbQueue.length){
+    const {url,resolve,reject}=_tmdbQueue.shift();
+    _tmdbActive++;
+    (async()=>{
+      try{
+        let res=await fetch(url);
+        if(res.status===429){
+          const w=Number(res.headers.get('Retry-After')||2)*1000;
+          await new Promise(r=>setTimeout(r,w));
+          res=await fetch(url);
+        }
+        if(!res.ok)throw new Error('TMDB '+res.status);
+        const json=await res.json();
+        _tmdbCache.set(url,json);
+        _tmdbInFlight.delete(url);
+        resolve(json);
+      }catch(e){_tmdbInFlight.delete(url);reject(e);}
+      finally{_tmdbActive--;_tmdbDrain();}
+    })();
+  }
+}
+
 async function tmdb(path,params={}){
   const url=new URL(BASE+path);
   url.searchParams.set('api_key',TMDB_KEY);
   url.searchParams.set('language','en-US');
-  Object.entries(params).forEach(([k,v])=>url.searchParams.set(k,v));
-  let res=await fetch(url);
-  if(res.status===429){const w=Number(res.headers.get('Retry-After')||1)*1000;await new Promise(r=>setTimeout(r,w));res=await fetch(url);}
-  if(!res.ok)throw new Error('TMDB '+res.status);
-  return res.json();
+  Object.entries(params).forEach(([k,v])=>url.searchParams.set(k,String(v)));
+  const key=url.toString();
+  if(_tmdbCache.has(key))return _tmdbCache.get(key);
+  if(_tmdbInFlight.has(key))return _tmdbInFlight.get(key);
+  const p=new Promise((resolve,reject)=>_tmdbQueue.push({url:key,resolve,reject}));
+  _tmdbInFlight.set(key,p);
+  _tmdbDrain();
+  return p;
 }
 
 const imgUrl=(path,size)=>path?size+path:null;
@@ -770,10 +871,14 @@ function cardEl(item){
 
 function skel(track,n=8){for(let i=0;i<n;i++){const s=document.createElement('div');s.className='skel';track.appendChild(s);}}
 
-function buildRowShell(title,rowId){
+function buildRowShell(title,rowId,expandCfg){
   const rows=document.getElementById('rows');
   const row=document.createElement('div');row.className='row';row.id=rowId;
-  row.innerHTML=`<div class="row-head"><div class="row-title">${title}</div></div><div class="row-track"></div>`;
+  const expandBtn=expandCfg?`<button class="row-expand-btn" data-row="${rowId}" title="See all ${title}" aria-label="Expand ${title}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M9 18l6-6-6-6"/></svg></button>`:'';
+  row.innerHTML=`<div class="row-head"><div class="row-title">${title}</div>${expandBtn}</div><div class="row-track"></div>`;
+  if(expandCfg){
+    row.querySelector('.row-expand-btn').addEventListener('click',()=>openCatOverlay(title,expandCfg));
+  }
   rows.appendChild(row);
   const track=row.querySelector('.row-track');skel(track);return track;
 }
@@ -784,8 +889,8 @@ function fillTrack(track,items,fb){
   items.forEach(item=>{if(!item.media_type)item.media_type=fb;track.appendChild(cardEl(item));});
 }
 
-async function loadRow(title,rowId,fetcher,fb){
-  const track=buildRowShell(title,rowId);
+async function loadRow(title,rowId,fetcher,fb,expandCfg){
+  const track=buildRowShell(title,rowId,expandCfg);
   try{const d=await fetcher();fillTrack(track,d.results||[],fb);}
   catch(e){track.innerHTML=`<div class="empty-row">Couldn't load this row right now.</div>`;}
 }
@@ -801,7 +906,13 @@ function renderMyListRow(){
   const track=row.querySelector('.row-track');track.innerHTML='';
   if(!list.length)track.innerHTML=`<div class="empty-row">Titles you save will show up here.</div>`;
   else list.forEach(item=>track.appendChild(cardEl(item)));
-  row.style.display=(currentCategory==='mylist')?'':'none';
+  const isMyList=(currentCategory==='mylist');
+  row.style.display=isMyList?'':'none';
+  // Hide streaming platform section when in watchlist
+  const sfSec=document.getElementById('sf-section');
+  const sfRow=document.getElementById('sfResultsRow');
+  if(sfSec)sfSec.style.display=isMyList?'none':'';
+  if(sfRow)sfRow.style.display=isMyList?'none':'';
 }
 
 /* ===== Hero ===== */
@@ -831,16 +942,13 @@ function setHero(i){
   document.getElementById('heroInfoBtn').onclick=()=>openModal(item.id,mType(item));
 }
 
-/* ===== Modal =====
-   CHANGE 2: modal-backdrop z-index is 600 (set in CSS), explore is 500
-   So the modal naturally appears on top of the explore overlay.
-   openModal works the same way from both the explore overlay and main page. */
+/* ===== Modal ===== */
 async function openModal(id,type,opts={}){
   const bd=document.getElementById('modalBackdrop'),modal=document.getElementById('modal');
-  modal.innerHTML=`<div class="modal-drag-handle" id="modalDragHandle"><div class="bar"></div></div><div class="modal-scroll" style="display:flex;align-items:center;justify-content:center;"><div style="padding:80px;text-align:center;color:var(--text-dim);">Loading…</div></div>`;
+  modal.innerHTML=`<div class="modal-drag-handle" id="modalDragHandle"><div class="bar"></div></div><div class="modal-scroll" style="display:flex;align-items:center;justify-content:center;min-height:300px;"><div style="padding:80px;text-align:center;color:var(--text-dim);">Loading…</div></div>`;
   bd.classList.add('show');document.body.style.overflow='hidden';
   try{
-    const data=await tmdb(`/${type}/${id}`,{append_to_response:'videos,credits'});
+    const data=await tmdb(`/${type}/${id}`,{append_to_response:'videos,credits,similar'});
     const title=data.title||data.name;
     const year=(data.release_date||data.first_air_date||'').slice(0,4);
     const runtime=type==='movie'?(data.runtime?`${data.runtime} min`:null):(data.number_of_seasons?`${data.number_of_seasons} season${data.number_of_seasons>1?'s':''}`:null);
@@ -852,6 +960,7 @@ async function openModal(id,type,opts={}){
     const seasons=type==='tv'?(data.seasons||[]).filter(s=>s.season_number!==0||data.seasons.length===1):[];
     const playerUrl=type==='movie'?`https://vidfast.pro/movie/${id}`:`https://vidfast.pro/tv/${id}/1/1`;
     const cwItem={id,media_type:type,title,poster_path:data.poster_path,backdrop_path:data.backdrop_path,vote_average:data.vote_average,release_date:data.release_date,first_air_date:data.first_air_date};
+    const similar=(data.similar?.results||[]).filter(i=>i.poster_path).slice(0,12);
 
     modal.innerHTML=`
       <div class="modal-drag-handle" id="modalDragHandle"><div class="bar"></div></div>
@@ -888,6 +997,13 @@ async function openModal(id,type,opts={}){
               <select class="season-select" id="seasonSelect">${seasons.map(s=>`<option value="${s.season_number}">${s.name} · ${s.episode_count} ep${s.episode_count===1?'':'s'}</option>`).join('')}</select>
             </div>
             <div class="episode-list" id="episodeList"></div>
+          </div>`:''}
+          ${similar.length?`
+          <div class="more-like-this">
+            <div class="mlt-label">More Like This</div>
+            <div class="mlt-grid" id="mltGrid">
+              ${similar.map(()=>`<div class="mlt-skel"></div>`).join('')}
+            </div>
           </div>`:''}
           <div class="note">Streaming via vidfast.pro, a third-party source. Availability varies by region.</div>
         </div>
@@ -949,8 +1065,23 @@ async function openModal(id,type,opts={}){
       };
       ss.addEventListener('change',()=>loadEps(ss.value));loadEps(ss.value);
     }
+    // Render More Like This cards
+    if(similar.length){
+      const grid=document.getElementById('mltGrid');
+      if(grid){
+        grid.innerHTML='';
+        similar.forEach(item=>{
+          if(!item.media_type)item.media_type=type;
+          const card=document.createElement('div');card.className='mlt-card';
+          const p=imgUrl(item.poster_path,IMG_POSTER);
+          card.innerHTML=p?`<img loading="lazy" src="${p}" alt="${mTitle(item)}"><div class="mlt-card-title">${mTitle(item)}</div>`:`<div class="card-fallback" style="font-size:11px;">${mTitle(item)}</div>`;
+          card.addEventListener('click',()=>openModal(item.id,mType(item)));
+          grid.appendChild(card);
+        });
+      }
+    }
   }catch(e){
-    modal.innerHTML=`<div class="modal-drag-handle" id="modalDragHandle"><div class="bar"></div></div><div class="modal-scroll" style="display:flex;align-items:center;justify-content:center;"><div style="padding:60px;text-align:center;color:var(--text-dim);"><button class="modal-close" id="modalCloseBtn" style="position:static;display:inline-flex;margin-bottom:20px;">✕</button><br>Something went wrong.</div></div>`;
+    modal.innerHTML=`<div class="modal-drag-handle" id="modalDragHandle"><div class="bar"></div></div><div class="modal-scroll" style="display:flex;align-items:center;justify-content:center;min-height:300px;"><div style="padding:60px;text-align:center;color:var(--text-dim);"><button class="modal-close" id="modalCloseBtn" style="position:static;display:inline-flex;margin-bottom:20px;">✕</button><br>Something went wrong.</div></div>`;
     document.getElementById('modalCloseBtn').onclick=closeModal;
   }
 }
@@ -1138,9 +1269,36 @@ function applyCategory(cat){
   document.querySelectorAll('.row').forEach(r=>r.style.display='');
   const ml=document.getElementById('row-mylist');if(ml)ml.style.display='none';
   const cw=document.getElementById('row-cw');
-  if(cat==='movies'){document.querySelectorAll('.row').forEach(r=>{if(r.id.includes('tv'))r.style.display='none';});if(cw)cw.style.display='none';}
-  else if(cat==='tv'){document.querySelectorAll('.row').forEach(r=>{if(!r.id.includes('tv')&&r.id!=='row-mylist'&&r.id!=='row-cw')r.style.display='none';});}
-  else if(cat==='mylist'){document.querySelectorAll('.row').forEach(r=>{if(r.id!=='row-mylist')r.style.display='none';});if(ml)ml.style.display='';}
+  const sfSec=document.getElementById('sf-section');
+  const sfRow=document.getElementById('sfResultsRow');
+  const expWrap=document.getElementById('exploreBtnWrap');
+
+  if(cat==='movies'){
+    document.querySelectorAll('.row').forEach(r=>{if(r.id.includes('tv'))r.style.display='none';});
+    if(cw)cw.style.display='none';
+    if(sfSec)sfSec.style.display='';
+    if(sfRow)sfRow.style.display='';
+    if(expWrap)expWrap.style.display='';
+  } else if(cat==='tv'){
+    document.querySelectorAll('.row').forEach(r=>{
+      if(!r.id.includes('tv')&&r.id!=='row-mylist'&&r.id!=='row-cw')r.style.display='none';
+    });
+    if(sfSec)sfSec.style.display='none';
+    if(sfRow)sfRow.style.display='none';
+    if(expWrap)expWrap.style.display='none';
+  } else if(cat==='mylist'){
+    document.querySelectorAll('.row').forEach(r=>{if(r.id!=='row-mylist')r.style.display='none';});
+    if(ml)ml.style.display='';
+    if(sfSec)sfSec.style.display='none';
+    if(sfRow)sfRow.style.display='none';
+    if(expWrap)expWrap.style.display='none';
+  } else {
+    // home
+    if(sfSec)sfSec.style.display='';
+    if(sfRow)sfRow.style.display='';
+    if(expWrap)expWrap.style.display='';
+  }
+  renderMyListRow();
   window.scrollTo({top:cat==='home'?0:heroEl.offsetHeight-80,behavior:'smooth'});
 }
 document.querySelectorAll('.nav-links a').forEach(l=>l.addEventListener('click',e=>{e.preventDefault();applyCategory(l.dataset.cat);}));
@@ -1168,22 +1326,119 @@ async function loadTop10(){
   sfInit();
 }
 
+/* ===== Category Expand Overlay ===== */
+let catOvTitle='',catOvFetcher=null,catOvType='movie',catOvPage=1,catOvLoading=false,catOvHasMore=true,catOvObserver=null;
+
+function openCatOverlay(title,cfg){
+  catOvTitle=title;catOvFetcher=cfg.fn;catOvType=cfg.type||'movie';
+  document.getElementById('catOverlayTitle').textContent=title;
+  const ov=document.getElementById('catOverlay');ov.classList.add('show');
+  document.body.style.overflow='hidden';
+  catOvPage=1;catOvLoading=false;catOvHasMore=true;
+  document.getElementById('catGrid').innerHTML='';
+  // show skeletons immediately
+  const g=document.getElementById('catGrid');
+  for(let i=0;i<12;i++){const s=document.createElement('div');s.className='cat-skel';g.appendChild(s);}
+  if(!catOvObserver){
+    catOvObserver=new IntersectionObserver(entries=>{
+      if(entries[0].isIntersecting)loadCatPage();
+    },{root:document.getElementById('catScroll'),rootMargin:'200px',threshold:0.1});
+    catOvObserver.observe(document.getElementById('catLoadTrigger'));
+  }
+  loadCatPage(true);
+}
+
+async function loadCatPage(initial=false){
+  if(catOvLoading||!catOvHasMore)return;
+  catOvLoading=true;
+  const spinner=document.getElementById('catSpinner');spinner.style.display='block';
+  try{
+    const data=await catOvFetcher(catOvPage);
+    const items=(data.results||[]).filter(i=>i.poster_path);
+    const grid=document.getElementById('catGrid');
+    if(initial)grid.innerHTML='';
+    if(data.page>=data.total_pages)catOvHasMore=false;
+    items.forEach(item=>{
+      const type=item.media_type||catOvType;item.media_type=type;
+      grid.appendChild(cardEl(item));
+    });
+    catOvPage++;
+  }catch(e){console.error('cat overlay load error',e);}
+  spinner.style.display='none';catOvLoading=false;
+}
+
+function closeCatOverlay(){
+  document.getElementById('catOverlay').classList.remove('show');
+  if(!document.getElementById('playerPopup').classList.contains('show')&&
+     !document.getElementById('modalBackdrop').classList.contains('show')&&
+     !document.getElementById('exploreOverlay').classList.contains('show')){
+    document.body.style.overflow='';
+  }
+}
+document.getElementById('catOverlayClose').addEventListener('click',closeCatOverlay);
+
 /* ===== Boot ===== */
 async function init(){
   renderCWRow();
   renderMyListRow();
   loadTop10();
   loadHero();
-  loadRow('Trending Now','row-trending',()=>tmdb('/trending/all/week'),'movie');
-  loadRow('Popular Movies','row-popmovies',()=>tmdb('/movie/popular'),'movie');
-  loadRow('Popular TV Shows','row-tvpopular',()=>tmdb('/tv/popular'),'tv');
-  loadRow('Top Rated Films','row-topmovies',()=>tmdb('/movie/top_rated'),'movie');
-  loadRow('Critically Acclaimed Series','row-tvtop',()=>tmdb('/tv/top_rated'),'tv');
-  loadRow('Action & Adventure','row-action',()=>tmdb('/discover/movie',{with_genres:28,sort_by:'popularity.desc'}),'movie');
-  loadRow('Sci-Fi & Fantasy','row-scifi',()=>tmdb('/discover/movie',{with_genres:878,sort_by:'popularity.desc'}),'movie');
-  loadRow('Comedies','row-comedy',()=>tmdb('/discover/movie',{with_genres:35,sort_by:'popularity.desc'}),'movie');
-  loadRow('Horror','row-horror',()=>tmdb('/discover/movie',{with_genres:27,sort_by:'popularity.desc'}),'movie');
-  loadRow('Animation','row-animation',()=>tmdb('/discover/movie',{with_genres:16,sort_by:'popularity.desc'}),'movie');
+
+  // ── Movies rows ──
+  loadRow('Trending Now','row-trending',()=>tmdb('/trending/all/week'),'movie',
+    {fn:p=>tmdb('/trending/all/week',{page:p}),type:'movie'});
+  loadRow('Popular Movies','row-popmovies',()=>tmdb('/movie/popular'),'movie',
+    {fn:p=>tmdb('/movie/popular',{page:p}),type:'movie'});
+  loadRow('Top Rated Films','row-topmovies',()=>tmdb('/movie/top_rated'),'movie',
+    {fn:p=>tmdb('/movie/top_rated',{page:p}),type:'movie'});
+  loadRow('Action & Adventure','row-action',()=>tmdb('/discover/movie',{with_genres:28,sort_by:'popularity.desc'}),'movie',
+    {fn:p=>tmdb('/discover/movie',{with_genres:28,sort_by:'popularity.desc',page:p}),type:'movie'});
+  loadRow('Sci-Fi & Fantasy','row-scifi',()=>tmdb('/discover/movie',{with_genres:878,sort_by:'popularity.desc'}),'movie',
+    {fn:p=>tmdb('/discover/movie',{with_genres:878,sort_by:'popularity.desc',page:p}),type:'movie'});
+  loadRow('Comedies','row-comedy',()=>tmdb('/discover/movie',{with_genres:35,sort_by:'popularity.desc'}),'movie',
+    {fn:p=>tmdb('/discover/movie',{with_genres:35,sort_by:'popularity.desc',page:p}),type:'movie'});
+  loadRow('Horror','row-horror',()=>tmdb('/discover/movie',{with_genres:27,sort_by:'popularity.desc'}),'movie',
+    {fn:p=>tmdb('/discover/movie',{with_genres:27,sort_by:'popularity.desc',page:p}),type:'movie'});
+  loadRow('Animation','row-animation',()=>tmdb('/discover/movie',{with_genres:16,sort_by:'popularity.desc'}),'movie',
+    {fn:p=>tmdb('/discover/movie',{with_genres:16,sort_by:'popularity.desc',page:p}),type:'movie'});
+  loadRow('Romance','row-romance',()=>tmdb('/discover/movie',{with_genres:10749,sort_by:'popularity.desc'}),'movie',
+    {fn:p=>tmdb('/discover/movie',{with_genres:10749,sort_by:'popularity.desc',page:p}),type:'movie'});
+  loadRow('Thriller','row-thriller',()=>tmdb('/discover/movie',{with_genres:53,sort_by:'popularity.desc'}),'movie',
+    {fn:p=>tmdb('/discover/movie',{with_genres:53,sort_by:'popularity.desc',page:p}),type:'movie'});
+  loadRow('Crime','row-crime',()=>tmdb('/discover/movie',{with_genres:80,sort_by:'popularity.desc'}),'movie',
+    {fn:p=>tmdb('/discover/movie',{with_genres:80,sort_by:'popularity.desc',page:p}),type:'movie'});
+  loadRow('Documentaries','row-docs',()=>tmdb('/discover/movie',{with_genres:99,sort_by:'popularity.desc'}),'movie',
+    {fn:p=>tmdb('/discover/movie',{with_genres:99,sort_by:'popularity.desc',page:p}),type:'movie'});
+
+  // ── TV Show rows (ids contain 'tv' so they hide/show correctly) ──
+  loadRow('Popular TV Shows','row-tvpopular',()=>tmdb('/tv/popular'),'tv',
+    {fn:p=>tmdb('/tv/popular',{page:p}),type:'tv'});
+  loadRow('Critically Acclaimed Series','row-tvtop',()=>tmdb('/tv/top_rated'),'tv',
+    {fn:p=>tmdb('/tv/top_rated',{page:p}),type:'tv'});
+  loadRow('Trending Series','row-tvtrending',()=>tmdb('/trending/tv/week'),'tv',
+    {fn:p=>tmdb('/trending/tv/week',{page:p}),type:'tv'});
+  loadRow('Drama Series','row-tvdrama',()=>tmdb('/discover/tv',{with_genres:18,sort_by:'popularity.desc'}),'tv',
+    {fn:p=>tmdb('/discover/tv',{with_genres:18,sort_by:'popularity.desc',page:p}),type:'tv'});
+  loadRow('Crime & Thriller TV','row-tvcrime',()=>tmdb('/discover/tv',{with_genres:80,sort_by:'popularity.desc'}),'tv',
+    {fn:p=>tmdb('/discover/tv',{with_genres:80,sort_by:'popularity.desc',page:p}),type:'tv'});
+  loadRow('Comedy Series','row-tvcomedy',()=>tmdb('/discover/tv',{with_genres:35,sort_by:'popularity.desc'}),'tv',
+    {fn:p=>tmdb('/discover/tv',{with_genres:35,sort_by:'popularity.desc',page:p}),type:'tv'});
+  loadRow('Sci-Fi TV','row-tvscifi',()=>tmdb('/discover/tv',{with_genres:10765,sort_by:'popularity.desc'}),'tv',
+    {fn:p=>tmdb('/discover/tv',{with_genres:10765,sort_by:'popularity.desc',page:p}),type:'tv'});
+  loadRow('Reality TV','row-tvreality',()=>tmdb('/discover/tv',{with_genres:10764,sort_by:'popularity.desc'}),'tv',
+    {fn:p=>tmdb('/discover/tv',{with_genres:10764,sort_by:'popularity.desc',page:p}),type:'tv'});
+  loadRow('Anime','row-tvanime',()=>tmdb('/discover/tv',{with_genres:16,sort_by:'popularity.desc'}),'tv',
+    {fn:p=>tmdb('/discover/tv',{with_genres:16,sort_by:'popularity.desc',page:p}),type:'tv'});
+  loadRow('Talk Shows','row-tvtalk',()=>tmdb('/discover/tv',{with_genres:10767,sort_by:'popularity.desc'}),'tv',
+    {fn:p=>tmdb('/discover/tv',{with_genres:10767,sort_by:'popularity.desc',page:p}),type:'tv'});
+  loadRow('Documentaries & Docuseries','row-tvdocs',()=>tmdb('/discover/tv',{with_genres:99,sort_by:'popularity.desc'}),'tv',
+    {fn:p=>tmdb('/discover/tv',{with_genres:99,sort_by:'popularity.desc',page:p}),type:'tv'});
+  loadRow('Mystery & Suspense','row-tvmystery',()=>tmdb('/discover/tv',{with_genres:9648,sort_by:'popularity.desc'}),'tv',
+    {fn:p=>tmdb('/discover/tv',{with_genres:9648,sort_by:'popularity.desc',page:p}),type:'tv'});
+  loadRow('Family & Kids TV','row-tvfamily',()=>tmdb('/discover/tv',{with_genres:10751,sort_by:'popularity.desc'}),'tv',
+    {fn:p=>tmdb('/discover/tv',{with_genres:10751,sort_by:'popularity.desc',page:p}),type:'tv'});
+  loadRow('Action TV','row-tvaction',()=>tmdb('/discover/tv',{with_genres:10759,sort_by:'popularity.desc'}),'tv',
+    {fn:p=>tmdb('/discover/tv',{with_genres:10759,sort_by:'popularity.desc',page:p}),type:'tv'});
 }
 /* ===== StreamFinder: Browse by Platform ===== */
 const SF_API_KEY = 'b1941699110de014fceb3d15828f4718';
