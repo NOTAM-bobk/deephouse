@@ -264,6 +264,7 @@ img{display:block;max-width:100%;}
 .sf-load-status{display:flex;align-items:center;justify-content:center;gap:10px;padding:20px 4vw;color:var(--text-dim);font-size:13px;}
 .sf-spinner{width:22px;height:22px;border:2px solid var(--border);border-top-color:var(--accent);border-radius:50%;animation:spin .7s linear infinite;flex-shrink:0;}
 .sf-end-msg{text-align:center;padding:16px 4vw;font-size:12.5px;color:var(--text-faint);}
+.sf-empty-hint{padding:30px 4vw;text-align:center;color:var(--text-faint);font-size:13.5px;}
 
 /* More Like This */
 .more-like-this{margin-top:24px;padding-top:20px;border-top:1px solid var(--border);}
@@ -563,6 +564,7 @@ netflixintro[letter="X"] .helper-2 .effect-brush{animation:brush-moving 2s .5s f
     <div class="row-title" id="sfRowTitle">On Platform</div>
     <div class="sf-results-count" id="sfResultsCount"></div>
   </div>
+  <div class="sf-empty-hint" id="sfEmptyHint">Pick a platform above to see what's streaming.</div>
   <div class="row-track" id="sfResultsTrack" style="padding-left:4vw;padding-right:4vw;"></div>
   <div class="sf-load-status" id="sfLoadStatus" style="display:none;">
     <div class="sf-spinner"></div><span>Loading more…</span>
@@ -861,7 +863,7 @@ function cardEl(item){
   const type=mType(item);
   const card=document.createElement('div');card.className='card';
   const p=imgUrl(item.poster_path,IMG_POSTER);
-  card.innerHTML=p?`<img loading="lazy" src="${p}" alt="${mTitle(item)}">`:`<div class="card-fallback">${mTitle(item)}</div>`;
+  card.innerHTML=p?`<img loading="lazy" decoding="async" src="${p}" alt="${mTitle(item)}">`:`<div class="card-fallback">${mTitle(item)}</div>`;
   const meta=document.createElement('div');meta.className='card-meta';
   meta.innerHTML=`<div>${mTitle(item)}</div><div><span class="r">★ ${item.vote_average?item.vote_average.toFixed(1):'–'}</span> · ${mYear(item)}</div>`;
   card.appendChild(meta);
@@ -869,7 +871,11 @@ function cardEl(item){
   return card;
 }
 
-function skel(track,n=8){for(let i=0;i<n;i++){const s=document.createElement('div');s.className='skel';track.appendChild(s);}}
+function skel(track,n=8){
+  const frag=document.createDocumentFragment();
+  for(let i=0;i<n;i++){const s=document.createElement('div');s.className='skel';frag.appendChild(s);}
+  track.appendChild(frag);
+}
 
 function buildRowShell(title,rowId,expandCfg){
   const rows=document.getElementById('rows');
@@ -886,7 +892,9 @@ function buildRowShell(title,rowId,expandCfg){
 function fillTrack(track,items,fb){
   track.innerHTML='';
   if(!items.length){track.parentElement.style.display='none';return;}
-  items.forEach(item=>{if(!item.media_type)item.media_type=fb;track.appendChild(cardEl(item));});
+  const frag=document.createDocumentFragment();
+  items.forEach(item=>{if(!item.media_type)item.media_type=fb;frag.appendChild(cardEl(item));});
+  track.appendChild(frag);
 }
 
 async function loadRow(title,rowId,fetcher,fb,expandCfg){
@@ -1358,10 +1366,12 @@ async function loadCatPage(initial=false){
     const grid=document.getElementById('catGrid');
     if(initial)grid.innerHTML='';
     if(data.page>=data.total_pages)catOvHasMore=false;
+    const frag=document.createDocumentFragment();
     items.forEach(item=>{
       const type=item.media_type||catOvType;item.media_type=type;
-      grid.appendChild(cardEl(item));
+      frag.appendChild(cardEl(item));
     });
+    grid.appendChild(frag);
     catOvPage++;
   }catch(e){console.error('cat overlay load error',e);}
   spinner.style.display='none';catOvLoading=false;
@@ -1378,67 +1388,86 @@ function closeCatOverlay(){
 document.getElementById('catOverlayClose').addEventListener('click',closeCatOverlay);
 
 /* ===== Boot ===== */
+const _ric = window.requestIdleCallback || function(cb){return setTimeout(()=>cb({timeRemaining:()=>0,didTimeout:true}),60);};
+
 async function init(){
   renderCWRow();
   renderMyListRow();
-  loadTop10();
+  // Priority: above-the-fold content first
   loadHero();
+  loadTop10();
+
+  // ── New & Upcoming (high priority, near top of page) ──
+  loadRow('New & Upcoming','row-newupcoming',
+    ()=>tmdb('/movie/upcoming'),'movie',
+    {fn:p=>tmdb('/movie/upcoming',{page:p}),type:'movie'});
 
   // ── Movies rows ──
   loadRow('Trending Now','row-trending',()=>tmdb('/trending/all/week'),'movie',
     {fn:p=>tmdb('/trending/all/week',{page:p}),type:'movie'});
   loadRow('Popular Movies','row-popmovies',()=>tmdb('/movie/popular'),'movie',
     {fn:p=>tmdb('/movie/popular',{page:p}),type:'movie'});
-  loadRow('Top Rated Films','row-topmovies',()=>tmdb('/movie/top_rated'),'movie',
-    {fn:p=>tmdb('/movie/top_rated',{page:p}),type:'movie'});
-  loadRow('Action & Adventure','row-action',()=>tmdb('/discover/movie',{with_genres:28,sort_by:'popularity.desc'}),'movie',
-    {fn:p=>tmdb('/discover/movie',{with_genres:28,sort_by:'popularity.desc',page:p}),type:'movie'});
-  loadRow('Sci-Fi & Fantasy','row-scifi',()=>tmdb('/discover/movie',{with_genres:878,sort_by:'popularity.desc'}),'movie',
-    {fn:p=>tmdb('/discover/movie',{with_genres:878,sort_by:'popularity.desc',page:p}),type:'movie'});
-  loadRow('Comedies','row-comedy',()=>tmdb('/discover/movie',{with_genres:35,sort_by:'popularity.desc'}),'movie',
-    {fn:p=>tmdb('/discover/movie',{with_genres:35,sort_by:'popularity.desc',page:p}),type:'movie'});
-  loadRow('Horror','row-horror',()=>tmdb('/discover/movie',{with_genres:27,sort_by:'popularity.desc'}),'movie',
-    {fn:p=>tmdb('/discover/movie',{with_genres:27,sort_by:'popularity.desc',page:p}),type:'movie'});
-  loadRow('Animation','row-animation',()=>tmdb('/discover/movie',{with_genres:16,sort_by:'popularity.desc'}),'movie',
-    {fn:p=>tmdb('/discover/movie',{with_genres:16,sort_by:'popularity.desc',page:p}),type:'movie'});
-  loadRow('Romance','row-romance',()=>tmdb('/discover/movie',{with_genres:10749,sort_by:'popularity.desc'}),'movie',
-    {fn:p=>tmdb('/discover/movie',{with_genres:10749,sort_by:'popularity.desc',page:p}),type:'movie'});
-  loadRow('Thriller','row-thriller',()=>tmdb('/discover/movie',{with_genres:53,sort_by:'popularity.desc'}),'movie',
-    {fn:p=>tmdb('/discover/movie',{with_genres:53,sort_by:'popularity.desc',page:p}),type:'movie'});
-  loadRow('Crime','row-crime',()=>tmdb('/discover/movie',{with_genres:80,sort_by:'popularity.desc'}),'movie',
-    {fn:p=>tmdb('/discover/movie',{with_genres:80,sort_by:'popularity.desc',page:p}),type:'movie'});
-  loadRow('Documentaries','row-docs',()=>tmdb('/discover/movie',{with_genres:99,sort_by:'popularity.desc'}),'movie',
-    {fn:p=>tmdb('/discover/movie',{with_genres:99,sort_by:'popularity.desc',page:p}),type:'movie'});
+
+  // Defer the rest of the rows to idle time so the initial paint and
+  // above-the-fold rows aren't competing for bandwidth/CPU.
+  _ric(()=>{
+    loadRow('Top Rated Films','row-topmovies',()=>tmdb('/movie/top_rated'),'movie',
+      {fn:p=>tmdb('/movie/top_rated',{page:p}),type:'movie'});
+    loadRow('Action & Adventure','row-action',()=>tmdb('/discover/movie',{with_genres:28,sort_by:'popularity.desc'}),'movie',
+      {fn:p=>tmdb('/discover/movie',{with_genres:28,sort_by:'popularity.desc',page:p}),type:'movie'});
+    loadRow('Sci-Fi & Fantasy','row-scifi',()=>tmdb('/discover/movie',{with_genres:878,sort_by:'popularity.desc'}),'movie',
+      {fn:p=>tmdb('/discover/movie',{with_genres:878,sort_by:'popularity.desc',page:p}),type:'movie'});
+    loadRow('Comedies','row-comedy',()=>tmdb('/discover/movie',{with_genres:35,sort_by:'popularity.desc'}),'movie',
+      {fn:p=>tmdb('/discover/movie',{with_genres:35,sort_by:'popularity.desc',page:p}),type:'movie'});
+    loadRow('Horror','row-horror',()=>tmdb('/discover/movie',{with_genres:27,sort_by:'popularity.desc'}),'movie',
+      {fn:p=>tmdb('/discover/movie',{with_genres:27,sort_by:'popularity.desc',page:p}),type:'movie'});
+    loadRow('Animation','row-animation',()=>tmdb('/discover/movie',{with_genres:16,sort_by:'popularity.desc'}),'movie',
+      {fn:p=>tmdb('/discover/movie',{with_genres:16,sort_by:'popularity.desc',page:p}),type:'movie'});
+    loadRow('Romance','row-romance',()=>tmdb('/discover/movie',{with_genres:10749,sort_by:'popularity.desc'}),'movie',
+      {fn:p=>tmdb('/discover/movie',{with_genres:10749,sort_by:'popularity.desc',page:p}),type:'movie'});
+    loadRow('Thriller','row-thriller',()=>tmdb('/discover/movie',{with_genres:53,sort_by:'popularity.desc'}),'movie',
+      {fn:p=>tmdb('/discover/movie',{with_genres:53,sort_by:'popularity.desc',page:p}),type:'movie'});
+    loadRow('Crime','row-crime',()=>tmdb('/discover/movie',{with_genres:80,sort_by:'popularity.desc'}),'movie',
+      {fn:p=>tmdb('/discover/movie',{with_genres:80,sort_by:'popularity.desc',page:p}),type:'movie'});
+    loadRow('Documentaries','row-docs',()=>tmdb('/discover/movie',{with_genres:99,sort_by:'popularity.desc'}),'movie',
+      {fn:p=>tmdb('/discover/movie',{with_genres:99,sort_by:'popularity.desc',page:p}),type:'movie'});
+  });
 
   // ── TV Show rows (ids contain 'tv' so they hide/show correctly) ──
+  loadRow('New Episodes & On The Air','row-tvnew',
+    ()=>tmdb('/tv/on_the_air'),'tv',
+    {fn:p=>tmdb('/tv/on_the_air',{page:p}),type:'tv'});
   loadRow('Popular TV Shows','row-tvpopular',()=>tmdb('/tv/popular'),'tv',
     {fn:p=>tmdb('/tv/popular',{page:p}),type:'tv'});
-  loadRow('Critically Acclaimed Series','row-tvtop',()=>tmdb('/tv/top_rated'),'tv',
-    {fn:p=>tmdb('/tv/top_rated',{page:p}),type:'tv'});
-  loadRow('Trending Series','row-tvtrending',()=>tmdb('/trending/tv/week'),'tv',
-    {fn:p=>tmdb('/trending/tv/week',{page:p}),type:'tv'});
-  loadRow('Drama Series','row-tvdrama',()=>tmdb('/discover/tv',{with_genres:18,sort_by:'popularity.desc'}),'tv',
-    {fn:p=>tmdb('/discover/tv',{with_genres:18,sort_by:'popularity.desc',page:p}),type:'tv'});
-  loadRow('Crime & Thriller TV','row-tvcrime',()=>tmdb('/discover/tv',{with_genres:80,sort_by:'popularity.desc'}),'tv',
-    {fn:p=>tmdb('/discover/tv',{with_genres:80,sort_by:'popularity.desc',page:p}),type:'tv'});
-  loadRow('Comedy Series','row-tvcomedy',()=>tmdb('/discover/tv',{with_genres:35,sort_by:'popularity.desc'}),'tv',
-    {fn:p=>tmdb('/discover/tv',{with_genres:35,sort_by:'popularity.desc',page:p}),type:'tv'});
-  loadRow('Sci-Fi TV','row-tvscifi',()=>tmdb('/discover/tv',{with_genres:10765,sort_by:'popularity.desc'}),'tv',
-    {fn:p=>tmdb('/discover/tv',{with_genres:10765,sort_by:'popularity.desc',page:p}),type:'tv'});
-  loadRow('Reality TV','row-tvreality',()=>tmdb('/discover/tv',{with_genres:10764,sort_by:'popularity.desc'}),'tv',
-    {fn:p=>tmdb('/discover/tv',{with_genres:10764,sort_by:'popularity.desc',page:p}),type:'tv'});
-  loadRow('Anime','row-tvanime',()=>tmdb('/discover/tv',{with_genres:16,sort_by:'popularity.desc'}),'tv',
-    {fn:p=>tmdb('/discover/tv',{with_genres:16,sort_by:'popularity.desc',page:p}),type:'tv'});
-  loadRow('Talk Shows','row-tvtalk',()=>tmdb('/discover/tv',{with_genres:10767,sort_by:'popularity.desc'}),'tv',
-    {fn:p=>tmdb('/discover/tv',{with_genres:10767,sort_by:'popularity.desc',page:p}),type:'tv'});
-  loadRow('Documentaries & Docuseries','row-tvdocs',()=>tmdb('/discover/tv',{with_genres:99,sort_by:'popularity.desc'}),'tv',
-    {fn:p=>tmdb('/discover/tv',{with_genres:99,sort_by:'popularity.desc',page:p}),type:'tv'});
-  loadRow('Mystery & Suspense','row-tvmystery',()=>tmdb('/discover/tv',{with_genres:9648,sort_by:'popularity.desc'}),'tv',
-    {fn:p=>tmdb('/discover/tv',{with_genres:9648,sort_by:'popularity.desc',page:p}),type:'tv'});
-  loadRow('Family & Kids TV','row-tvfamily',()=>tmdb('/discover/tv',{with_genres:10751,sort_by:'popularity.desc'}),'tv',
-    {fn:p=>tmdb('/discover/tv',{with_genres:10751,sort_by:'popularity.desc',page:p}),type:'tv'});
-  loadRow('Action TV','row-tvaction',()=>tmdb('/discover/tv',{with_genres:10759,sort_by:'popularity.desc'}),'tv',
-    {fn:p=>tmdb('/discover/tv',{with_genres:10759,sort_by:'popularity.desc',page:p}),type:'tv'});
+
+  _ric(()=>{
+    loadRow('Critically Acclaimed Series','row-tvtop',()=>tmdb('/tv/top_rated'),'tv',
+      {fn:p=>tmdb('/tv/top_rated',{page:p}),type:'tv'});
+    loadRow('Trending Series','row-tvtrending',()=>tmdb('/trending/tv/week'),'tv',
+      {fn:p=>tmdb('/trending/tv/week',{page:p}),type:'tv'});
+    loadRow('Drama Series','row-tvdrama',()=>tmdb('/discover/tv',{with_genres:18,sort_by:'popularity.desc'}),'tv',
+      {fn:p=>tmdb('/discover/tv',{with_genres:18,sort_by:'popularity.desc',page:p}),type:'tv'});
+    loadRow('Crime & Thriller TV','row-tvcrime',()=>tmdb('/discover/tv',{with_genres:80,sort_by:'popularity.desc'}),'tv',
+      {fn:p=>tmdb('/discover/tv',{with_genres:80,sort_by:'popularity.desc',page:p}),type:'tv'});
+    loadRow('Comedy Series','row-tvcomedy',()=>tmdb('/discover/tv',{with_genres:35,sort_by:'popularity.desc'}),'tv',
+      {fn:p=>tmdb('/discover/tv',{with_genres:35,sort_by:'popularity.desc',page:p}),type:'tv'});
+    loadRow('Sci-Fi TV','row-tvscifi',()=>tmdb('/discover/tv',{with_genres:10765,sort_by:'popularity.desc'}),'tv',
+      {fn:p=>tmdb('/discover/tv',{with_genres:10765,sort_by:'popularity.desc',page:p}),type:'tv'});
+    loadRow('Reality TV','row-tvreality',()=>tmdb('/discover/tv',{with_genres:10764,sort_by:'popularity.desc'}),'tv',
+      {fn:p=>tmdb('/discover/tv',{with_genres:10764,sort_by:'popularity.desc',page:p}),type:'tv'});
+    loadRow('Anime','row-tvanime',()=>tmdb('/discover/tv',{with_genres:16,sort_by:'popularity.desc'}),'tv',
+      {fn:p=>tmdb('/discover/tv',{with_genres:16,sort_by:'popularity.desc',page:p}),type:'tv'});
+    loadRow('Talk Shows','row-tvtalk',()=>tmdb('/discover/tv',{with_genres:10767,sort_by:'popularity.desc'}),'tv',
+      {fn:p=>tmdb('/discover/tv',{with_genres:10767,sort_by:'popularity.desc',page:p}),type:'tv'});
+    loadRow('Documentaries & Docuseries','row-tvdocs',()=>tmdb('/discover/tv',{with_genres:99,sort_by:'popularity.desc'}),'tv',
+      {fn:p=>tmdb('/discover/tv',{with_genres:99,sort_by:'popularity.desc',page:p}),type:'tv'});
+    loadRow('Mystery & Suspense','row-tvmystery',()=>tmdb('/discover/tv',{with_genres:9648,sort_by:'popularity.desc'}),'tv',
+      {fn:p=>tmdb('/discover/tv',{with_genres:9648,sort_by:'popularity.desc',page:p}),type:'tv'});
+    loadRow('Family & Kids TV','row-tvfamily',()=>tmdb('/discover/tv',{with_genres:10751,sort_by:'popularity.desc'}),'tv',
+      {fn:p=>tmdb('/discover/tv',{with_genres:10751,sort_by:'popularity.desc',page:p}),type:'tv'});
+    loadRow('Action TV','row-tvaction',()=>tmdb('/discover/tv',{with_genres:10759,sort_by:'popularity.desc'}),'tv',
+      {fn:p=>tmdb('/discover/tv',{with_genres:10759,sort_by:'popularity.desc',page:p}),type:'tv'});
+  });
 }
 /* ===== StreamFinder: Browse by Platform ===== */
 const SF_API_KEY = 'b1941699110de014fceb3d15828f4718';
@@ -1522,8 +1551,10 @@ function sfFetchList(){
   const state=sfGetState(sfCurrentProvider);
   const track=document.getElementById('sfResultsTrack');
   const rowTitle=document.getElementById('sfRowTitle');
+  const emptyHint=document.getElementById('sfEmptyHint');
   const prov=sfProviders.find(p=>p.id===sfCurrentProvider);
   if(prov)rowTitle.textContent=`Streaming on ${prov.name}`;
+  emptyHint.style.display='none';
   document.getElementById('sfEndMsg').style.display='none';
   document.getElementById('sfLoadStatus').style.display='none';
   document.getElementById('sfResultsRow').style.display='';
@@ -1573,8 +1604,10 @@ async function sfLoadPage(providerId,isInitial){
     state.loaded=true;
     if(providerId===sfCurrentProvider){
       const track=document.getElementById('sfResultsTrack');
-      if(isInitial){track.innerHTML='';state.items.forEach(item=>track.appendChild(cardEl(item)));}
-      else combined.forEach(item=>track.appendChild(cardEl(item)));
+      const frag=document.createDocumentFragment();
+      if(isInitial){track.innerHTML='';state.items.forEach(item=>frag.appendChild(cardEl(item)));}
+      else combined.forEach(item=>frag.appendChild(cardEl(item)));
+      track.appendChild(frag);
       sfUpdateCount(state.items.length);
       document.getElementById('sfLoadStatus').style.display='none';
       if(state.moviePage>=state.movieTotalPages&&state.tvPage>=state.tvTotalPages)
@@ -1602,10 +1635,10 @@ function sfSetupScroll(){
 async function sfInit(){
   await sfResolveProviders();
   if(!sfProviders.length)return;
-  sfCurrentProvider=sfProviders[0].id;
   document.getElementById('sf-section').style.display='';
+  document.getElementById('sfResultsRow').style.display='';
+  sfCurrentProvider=null;
   sfRenderProviders();
-  sfFetchList();
   sfSetupScroll();
 }
 
