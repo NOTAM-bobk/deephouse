@@ -588,7 +588,7 @@ netflixintro[letter="X"] .helper-2 .effect-brush{animation:brush-moving 2s .5s f
 
 <footer class="footer">
   <div class="sprocket long"><span></span><span></span><span></span><span></span><span></span></div>
-  <div> this was built by sawyer, for personal reasons, using tmdb api, AI, and vidfast for iframeing video service.</div>
+  <div>Personal, non-commercial project using TMDB API. Not affiliated with Netflix, Inc. or TMDB.</div>
 </footer>
 
 <nav class="bottom-nav" id="bottomNav">
@@ -913,14 +913,13 @@ function renderMyListRow(){
   }
   const track=row.querySelector('.row-track');track.innerHTML='';
   if(!list.length)track.innerHTML=`<div class="empty-row">Titles you save will show up here.</div>`;
-  else list.forEach(item=>track.appendChild(cardEl(item)));
+  else{
+    const frag=document.createDocumentFragment();
+    list.forEach(item=>frag.appendChild(cardEl(item)));
+    track.appendChild(frag);
+  }
   const isMyList=(currentCategory==='mylist');
   row.style.display=isMyList?'':'none';
-  // Hide streaming platform section when in watchlist
-  const sfSec=document.getElementById('sf-section');
-  const sfRow=document.getElementById('sfResultsRow');
-  if(sfSec)sfSec.style.display=isMyList?'none':'';
-  if(sfRow)sfRow.style.display=isMyList?'none':'';
 }
 
 /* ===== Hero ===== */
@@ -1253,9 +1252,28 @@ searchInput.addEventListener('keydown',e=>{if(e.key==='Enter'){clearTimeout(sd);
 searchClearBtn.addEventListener('click',e=>{e.stopPropagation();searchInput.value='';searchClearBtn.style.display='none';recentWrap.style.display='';clearSearchView();searchInput.focus();renderRecent();});
 clearRecentBtn.addEventListener('click',e=>{e.stopPropagation();setRecent([]);renderRecent();});
 
-function clearSearchView(){searchView.classList.remove('show');heroEl.style.display='';rowsEl.style.display='';exploreBtnWrap.style.display='';}
+function clearSearchView(){
+  searchView.classList.remove('show');
+  heroEl.style.display='';
+  rowsEl.style.display='';
+  exploreBtnWrap.style.display='';
+  const sfSec=document.getElementById('sf-section');
+  const sfRow=document.getElementById('sfResultsRow');
+  // Only show platform section if we're not in a category that hides it
+  if(currentCategory!=='tv'&&currentCategory!=='mylist'){
+    if(sfSec)sfSec.style.display='';
+    if(sfRow)sfRow.style.display='';
+  }
+}
 async function runSearch(query){
-  addRecent(query);heroEl.style.display='none';rowsEl.style.display='none';exploreBtnWrap.style.display='none';
+  addRecent(query);
+  heroEl.style.display='none';
+  rowsEl.style.display='none';
+  exploreBtnWrap.style.display='none';
+  const sfSec=document.getElementById('sf-section');
+  const sfRow=document.getElementById('sfResultsRow');
+  if(sfSec)sfSec.style.display='none';
+  if(sfRow)sfRow.style.display='none';
   searchView.classList.add('show');
   const heading=document.getElementById('searchHeading');const grid=document.getElementById('searchGrid');
   heading.textContent=`Results for "${query}"`;grid.innerHTML='';
@@ -1281,6 +1299,9 @@ function applyCategory(cat){
   const sfRow=document.getElementById('sfResultsRow');
   const expWrap=document.getElementById('exploreBtnWrap');
 
+  // Reset hero visibility first; hide/show per-branch below
+  heroEl.style.display='';
+
   if(cat==='movies'){
     document.querySelectorAll('.row').forEach(r=>{if(r.id.includes('tv'))r.style.display='none';});
     if(cw)cw.style.display='none';
@@ -1297,6 +1318,7 @@ function applyCategory(cat){
   } else if(cat==='mylist'){
     document.querySelectorAll('.row').forEach(r=>{if(r.id!=='row-mylist')r.style.display='none';});
     if(ml)ml.style.display='';
+    heroEl.style.display='none';          // ← hide hero on watchlist
     if(sfSec)sfSec.style.display='none';
     if(sfRow)sfRow.style.display='none';
     if(expWrap)expWrap.style.display='none';
@@ -1307,7 +1329,7 @@ function applyCategory(cat){
     if(expWrap)expWrap.style.display='';
   }
   renderMyListRow();
-  window.scrollTo({top:cat==='home'?0:heroEl.offsetHeight-80,behavior:'smooth'});
+  window.scrollTo({top:cat==='home'||cat==='mylist'?0:heroEl.offsetHeight-80,behavior:'smooth'});
 }
 document.querySelectorAll('.nav-links a').forEach(l=>l.addEventListener('click',e=>{e.preventDefault();applyCategory(l.dataset.cat);}));
 document.querySelectorAll('.bottom-nav button').forEach(b=>b.addEventListener('click',()=>applyCategory(b.dataset.cat)));
@@ -1637,6 +1659,8 @@ async function sfInit(){
   if(!sfProviders.length)return;
   document.getElementById('sf-section').style.display='';
   document.getElementById('sfResultsRow').style.display='';
+  document.getElementById('sfRowTitle').textContent='Browse by Platform';
+  document.getElementById('sfEmptyHint').style.display='';
   sfCurrentProvider=null;
   sfRenderProviders();
   sfSetupScroll();
