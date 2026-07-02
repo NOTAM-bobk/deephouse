@@ -81,6 +81,7 @@ img{display:block;max-width:100%;}
 .hero-dots{position:absolute;bottom:18px;right:4vw;z-index:3;display:flex;gap:8px;}
 .hero-dots button{width:22px;height:3px;background:rgba(255,255,255,.3);border-radius:2px;transition:background .25s,width .25s;}
 .hero-dots button.active{background:var(--accent);width:34px;}
+.hero-skel{position:absolute;inset:0;z-index:0;background:linear-gradient(100deg,var(--card) 30%,var(--card-hover) 50%,var(--card) 70%);background-size:200% 100%;animation:shimmer 1.4s infinite;}
 
 /* Rows */
 .rows{position:relative;z-index:2;margin-top:48px;padding-bottom:40px;}
@@ -127,6 +128,7 @@ img{display:block;max-width:100%;}
 .search-view{display:none;padding:120px 4vw 60px;}
 .search-view.show{display:block;}
 .search-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:16px;}
+.search-grid .card{width:100%;}
 .search-heading{font-size:22px;font-family:'Bebas Neue';letter-spacing:1px;margin-bottom:18px;}
 
 /* Modal — dynamic height, swipe-to-close on mobile */
@@ -352,6 +354,7 @@ img{display:block;max-width:100%;}
   .skel{width:128px;}
   .cw-card{width:220px;}
   .search-panel{width:86vw;right:-8px;}
+  .search-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;}
   .top10-rank{font-size:78px;margin-right:-16px;top:10px;}
   /* Mobile modal: dynamic height, scrollable content */
   .modal{max-height:96vh;height:auto;}
@@ -485,33 +488,7 @@ netflixintro[letter="X"] .helper-2 .effect-brush{animation:brush-moving 2s .5s f
 @keyframes zoom-in{0%{transform:scale(1)}100%{transform:scale(15)}}
 @keyframes showing-lumieres{0%{opacity:0}100%{opacity:1}}
 @keyframes fading-lumieres-box{0%{background-color:rgba(var(--base-color-rgb),.5)}100%{background-color:rgba(var(--base-color-rgb),0)}}
-
-    /* Skeleton Loader */
-    .skeleton-card {
-      flex: 0 0 auto;
-      width: 170px;
-      aspect-ratio: 2/3;
-      border-radius: 8px;
-      background: linear-gradient(90deg, var(--card) 25%, var(--card-hover) 50%, var(--card) 75%);
-      background-size: 200% 100%;
-      animation: skeleton-loading 1.5s infinite linear;
-    }
-    @keyframes skeleton-loading {
-      0% { background-position: 200% 0; }
-      100% { background-position: -200% 0; }
-    }
-    
-    /* Mobile Search Optimization */
-    @media (max-width: 768px) {
-      .search-grid {
-        grid-template-columns: repeat(2, 1fr) !important;
-        gap: 12px !important;
-      }
-      .card {
-        width: 100% !important;
-      }
-    }
-    </style>
+</style>
 </head>
 <body>
 
@@ -553,6 +530,7 @@ netflixintro[letter="X"] .helper-2 .effect-brush{animation:brush-moving 2s .5s f
 </nav>
 
 <header class="hero" id="hero">
+  <div class="hero-skel" id="heroSkel"></div>
   <div class="hero-scrim"></div>
   <div id="heroSlides"></div>
   <div class="hero-content">
@@ -880,6 +858,81 @@ window.addEventListener('keydown',e=>{
   }
 });
 
+/* ===== Playback Progress Tracking (VidFast player events) =====
+   VidFast posts PLAYER_EVENT messages (play/pause/seeked/timeupdate/ended)
+   with currentTime/duration for the item currently playing. We mirror that
+   into our own localStorage (matching VidFast's documented shape) and also
+   fold it straight into the Continue Watching list so its progress bar
+   reflects real watch position instead of the placeholder value. */
+const VIDFAST_ORIGINS=['https://vidfast.pro','https://vidfast.in','https://vidfast.io','https://vidfast.me','https://vidfast.net','https://vidfast.pm','https://vidfast.xyz'];
+const PROGRESS_KEY='sf_watch_progress';
+const _cwRenderThrottle={};
+
+function getProgressMap(){try{return JSON.parse(localStorage.getItem(PROGRESS_KEY)||'{}');}catch(e){return{};}}
+function setProgressMap(map){localStorage.setItem(PROGRESS_KEY,JSON.stringify(map));}
+const progressKeyFor=(mediaType,tmdbId)=>(mediaType==='movie'?'m':'t')+tmdbId;
+
+function getStoredProgress(mediaType,tmdbId,season,episode){
+  const entry=getProgressMap()[progressKeyFor(mediaType,tmdbId)];
+  if(!entry)return null;
+  if(mediaType==='tv'&&season&&episode&&entry.show_progress){
+    const ep=entry.show_progress[`s${season}e${episode}`];
+    if(ep)return ep.progress;
+  }
+  return entry.progress||null;
+}
+
+function handlePlayerEvent(d){
+  const {event,tmdbId,mediaType,season,episode,currentTime,duration}=d||{};
+  if(!tmdbId||!mediaType||!duration||duration<=0)return;
+
+  // Persist to our own progress map, mirroring VidFast's documented structure
+  const map=getProgressMap();
+  const key=progressKeyFor(mediaType,tmdbId);
+  const entry=map[key]||{id:tmdbId,type:mediaType};
+  entry.progress={watched:currentTime,duration};
+  entry.last_updated=Date.now();
+  if(mediaType==='tv'&&season&&episode){
+    entry.last_season_watched=season;
+    entry.last_episode_watched=episode;
+    entry.show_progress=entry.show_progress||{};
+    entry.show_progress[`s${season}e${episode}`]={season,episode,progress:{watched:currentTime,duration},last_updated:Date.now()};
+  }
+  map[key]=entry;
+  setProgressMap(map);
+
+  // Reflect into the Continue Watching list + its red progress bar
+  const pct=event==='ended'?100:Math.min(Math.max(Math.round((currentTime/duration)*100),0),99);
+  const list=getCW();
+  const idx=list.findIndex(i=>i.id===tmdbId&&i.media_type===mediaType);
+  if(idx===-1)return;
+  list[idx].progress=pct;
+  list[idx].watchedSeconds=currentTime;
+  list[idx].durationSeconds=duration;
+  if(mediaType==='tv'&&season&&episode)list[idx].lastEp=`S${season} E${episode}`;
+  list[idx].watchedAt=Date.now();
+  setCW(list);
+
+  // Re-render is cheap, but timeupdate can fire often — throttle those,
+  // while play/pause/seeked/ended always update immediately.
+  const now=Date.now();
+  const immediate=event!=='timeupdate';
+  if(immediate||!_cwRenderThrottle[key]||now-_cwRenderThrottle[key]>4000){
+    _cwRenderThrottle[key]=now;
+    renderCWRow();
+  }
+}
+
+window.addEventListener('message',({origin,data})=>{
+  if(!VIDFAST_ORIGINS.includes(origin)||!data)return;
+  if(data.type==='PLAYER_EVENT'){
+    const ev=data.data||{};
+    if(['play','pause','seeked','timeupdate','ended'].includes(ev.event))handlePlayerEvent(ev);
+  }else if(data.type==='MEDIA_DATA'){
+    try{localStorage.setItem('vidFastProgress',JSON.stringify(data.data));}catch(e){}
+  }
+});
+
 /* ===== Cards/Rows ===== */
 const mTitle=i=>i.title||i.name||'Untitled';
 const mYear=i=>{const d=i.release_date||i.first_air_date;return d?d.slice(0,4):'—';};
@@ -912,8 +965,6 @@ function buildRowShell(title,rowId,expandCfg){
     row.querySelector('.row-expand-btn').addEventListener('click',()=>openCatOverlay(title,expandCfg));
   }
   rows.appendChild(row);
-  const track = row.querySelector('.row-track');
-  for(let i=0; i<8; i++) { const s = document.createElement('div'); s.className = 'skeleton-card'; track.appendChild(s); }
   const track=row.querySelector('.row-track');skel(track);return track;
 }
 
@@ -925,10 +976,30 @@ function fillTrack(track,items,fb){
   track.appendChild(frag);
 }
 
-async function loadRow(title,rowId,fetcher,fb,expandCfg){
+function loadRow(title,rowId,fetcher,fb,expandCfg){
+  // Build the shell + skeleton immediately so the page layout is stable,
+  // but defer the actual TMDB fetch until the row is scrolled near the
+  // viewport. Rows already on/near screen at boot load right away since
+  // they're already inside the observer's rootMargin.
   const track=buildRowShell(title,rowId,expandCfg);
-  try{const d=await fetcher();fillTrack(track,d.results||[],fb);}
-  catch(e){track.innerHTML=`<div class="empty-row">Couldn't load this row right now.</div>`;}
+  const rowEl=document.getElementById(rowId);
+  const doLoad=async()=>{
+    try{const d=await fetcher();fillTrack(track,d.results||[],fb);}
+    catch(e){track.innerHTML=`<div class="empty-row">Couldn't load this row right now.</div>`;}
+  };
+  if('IntersectionObserver' in window && rowEl){
+    const io=new IntersectionObserver(entries=>{
+      entries.forEach(entry=>{
+        if(entry.isIntersecting){
+          io.disconnect();
+          doLoad();
+        }
+      });
+    },{root:null,rootMargin:'700px 0px 700px 0px',threshold:0});
+    io.observe(rowEl);
+  } else {
+    doLoad();
+  }
 }
 
 function renderMyListRow(){
@@ -953,17 +1024,25 @@ function renderMyListRow(){
 /* ===== Hero ===== */
 let heroItems=[],heroIndex=0,heroTimer=null;
 async function loadHero(){
-  const d=await tmdb('/trending/all/week');
-  heroItems=(d.results||[]).filter(i=>i.backdrop_path).slice(0,5);
-  if(!heroItems.length)return;
-  const sw=document.getElementById('heroSlides'),dw=document.getElementById('heroDots');
-  heroItems.forEach((item,i)=>{
-    const sl=document.createElement('div');sl.className='hero-slide'+(i===0?' active':'');
-    sl.style.backgroundImage=`url(${imgUrl(item.backdrop_path,IMG_BACKDROP)})`;sl.dataset.index=i;sw.appendChild(sl);
-    const dot=document.createElement('button');if(i===0)dot.className='active';
-    dot.addEventListener('click',()=>setHero(i));dw.appendChild(dot);
-  });
-  setHero(0);heroTimer=setInterval(()=>setHero((heroIndex+1)%heroItems.length),8000);
+  try{
+    const d=await tmdb('/trending/all/week');
+    heroItems=(d.results||[]).filter(i=>i.backdrop_path).slice(0,5);
+    const heroSkel=document.getElementById('heroSkel');
+    if(!heroItems.length){if(heroSkel)heroSkel.remove();return;}
+    const sw=document.getElementById('heroSlides'),dw=document.getElementById('heroDots');
+    heroItems.forEach((item,i)=>{
+      const sl=document.createElement('div');sl.className='hero-slide'+(i===0?' active':'');
+      sl.style.backgroundImage=`url(${imgUrl(item.backdrop_path,IMG_BACKDROP)})`;sl.dataset.index=i;sw.appendChild(sl);
+      const dot=document.createElement('button');if(i===0)dot.className='active';
+      dot.addEventListener('click',()=>setHero(i));dw.appendChild(dot);
+    });
+    setHero(0);heroTimer=setInterval(()=>setHero((heroIndex+1)%heroItems.length),8000);
+    if(heroSkel)heroSkel.remove();
+  }catch(e){
+    console.error('hero load error',e);
+    const heroSkel=document.getElementById('heroSkel');if(heroSkel)heroSkel.remove();
+    document.getElementById('heroTitle').textContent='Welcome';
+  }
 }
 
 function setHero(i){
@@ -1179,7 +1258,7 @@ const IMDB_FILTERS={
   animation:{fn:()=>tmdb('/discover/movie',{with_genres:16,sort_by:'popularity.desc',page:explorePage}),type:'movie'},
 };
 
-async function loadExplorePage(){
+async function loadExplorePage(isInitial){
   if(exploreLoading||!exploreHasMore)return;
   exploreLoading=true;
   const spinner=document.getElementById('exploreSpinner');spinner.style.display='block';
@@ -1188,6 +1267,7 @@ async function loadExplorePage(){
     const data=await cfg.fn();
     const items=(data.results||[]).filter(i=>i.poster_path);
     const grid=document.getElementById('exploreGrid');
+    if(isInitial)grid.innerHTML=''; // clear skeleton placeholders
     if(data.page>=data.total_pages)exploreHasMore=false;
     items.forEach(item=>{
       const type=item.media_type||cfg.type||'movie';
@@ -1202,8 +1282,10 @@ async function loadExplorePage(){
 
 function resetExplore(){
   explorePage=1;exploreLoading=false;exploreHasMore=true;
-  document.getElementById('exploreGrid').innerHTML='';
-  loadExplorePage();
+  const grid=document.getElementById('exploreGrid');
+  grid.innerHTML='';
+  for(let i=0;i<12;i++){const s=document.createElement('div');s.className='explore-skel';grid.appendChild(s);}
+  loadExplorePage(true);
 }
 
 function openExplore(){
@@ -1304,10 +1386,13 @@ async function runSearch(query){
   if(sfRow)sfRow.style.display='none';
   searchView.classList.add('show');
   const heading=document.getElementById('searchHeading');const grid=document.getElementById('searchGrid');
-  heading.textContent=`Results for "${query}"`;grid.innerHTML='';
+  heading.textContent=`Results for "${query}"`;
+  grid.innerHTML='';
+  for(let i=0;i<8;i++){const s=document.createElement('div');s.className='explore-skel';grid.appendChild(s);}
   try{
     const d=await tmdb('/search/multi',{query,include_adult:'false'});
     const res=(d.results||[]).filter(r=>r.media_type==='movie'||r.media_type==='tv');
+    grid.innerHTML='';
     if(!res.length){grid.innerHTML=`<div class="empty-row">No titles matched "${query}".</div>`;return;}
     res.forEach(item=>grid.appendChild(cardEl(item)));
   }catch(e){grid.innerHTML=`<div class="empty-row">Search failed — try again.</div>`;}
@@ -1696,42 +1781,6 @@ async function sfInit(){
 
 init();
 
-
-/* ===== Progress Saving Logic ===== */
-window.addEventListener('message', (e) => {
-  const iframe = document.getElementById('playerIframe');
-  if (!iframe || e.source !== iframe.contentWindow) return;
-  const d = e.data;
-  if (d && (d.event === 'timeupdate' || d.type === 'PLAYER_EVENT' || d.event === 'progress')) {
-    const t = d.currentTime || d.time || (d.data && d.data.time);
-    const dur = d.duration || (d.data && d.data.duration);
-    if (t && dur && window.currentPlayerItem) {
-      const p = Math.floor((t / dur) * 100);
-      let list = getCW();
-      let item = list.find(i => i.id === window.currentPlayerItem.id && i.media_type === window.currentPlayerItem.media_type);
-      if (item) { 
-        item.progress = p; 
-        item.currentTime = t; 
-        item.watchedAt = Date.now(); 
-      } else { 
-        list.unshift({ ...window.currentPlayerItem, progress: p, currentTime: t, watchedAt: Date.now() }); 
-      }
-      setCW(list.slice(0, 20));
-      renderCWRow();
-    }
-  }
-});
-
-/* Update openPlayer to handle resume */
-const originalOpenPlayer = openPlayer;
-openPlayer = function(url, label, cwItem) {
-  window.currentPlayerItem = cwItem || null;
-  if(cwItem && cwItem.currentTime) {
-    const sep = url.includes('?') ? '&' : '?';
-    url += `${sep}startAt=${Math.floor(cwItem.currentTime)}`;
-  }
-  originalOpenPlayer(url, label, cwItem);
-};
 </script>
 </body>
 </html>
