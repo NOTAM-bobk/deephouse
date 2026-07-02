@@ -485,7 +485,33 @@ netflixintro[letter="X"] .helper-2 .effect-brush{animation:brush-moving 2s .5s f
 @keyframes zoom-in{0%{transform:scale(1)}100%{transform:scale(15)}}
 @keyframes showing-lumieres{0%{opacity:0}100%{opacity:1}}
 @keyframes fading-lumieres-box{0%{background-color:rgba(var(--base-color-rgb),.5)}100%{background-color:rgba(var(--base-color-rgb),0)}}
-</style>
+
+    /* Skeleton Loader */
+    .skeleton-card {
+      flex: 0 0 auto;
+      width: 170px;
+      aspect-ratio: 2/3;
+      border-radius: 8px;
+      background: linear-gradient(90deg, var(--card) 25%, var(--card-hover) 50%, var(--card) 75%);
+      background-size: 200% 100%;
+      animation: skeleton-loading 1.5s infinite linear;
+    }
+    @keyframes skeleton-loading {
+      0% { background-position: 200% 0; }
+      100% { background-position: -200% 0; }
+    }
+    
+    /* Mobile Search Optimization */
+    @media (max-width: 768px) {
+      .search-grid {
+        grid-template-columns: repeat(2, 1fr) !important;
+        gap: 12px !important;
+      }
+      .card {
+        width: 100% !important;
+      }
+    }
+    </style>
 </head>
 <body>
 
@@ -886,6 +912,8 @@ function buildRowShell(title,rowId,expandCfg){
     row.querySelector('.row-expand-btn').addEventListener('click',()=>openCatOverlay(title,expandCfg));
   }
   rows.appendChild(row);
+  const track = row.querySelector('.row-track');
+  for(let i=0; i<8; i++) { const s = document.createElement('div'); s.className = 'skeleton-card'; track.appendChild(s); }
   const track=row.querySelector('.row-track');skel(track);return track;
 }
 
@@ -1668,6 +1696,42 @@ async function sfInit(){
 
 init();
 
+
+/* ===== Progress Saving Logic ===== */
+window.addEventListener('message', (e) => {
+  const iframe = document.getElementById('playerIframe');
+  if (!iframe || e.source !== iframe.contentWindow) return;
+  const d = e.data;
+  if (d && (d.event === 'timeupdate' || d.type === 'PLAYER_EVENT' || d.event === 'progress')) {
+    const t = d.currentTime || d.time || (d.data && d.data.time);
+    const dur = d.duration || (d.data && d.data.duration);
+    if (t && dur && window.currentPlayerItem) {
+      const p = Math.floor((t / dur) * 100);
+      let list = getCW();
+      let item = list.find(i => i.id === window.currentPlayerItem.id && i.media_type === window.currentPlayerItem.media_type);
+      if (item) { 
+        item.progress = p; 
+        item.currentTime = t; 
+        item.watchedAt = Date.now(); 
+      } else { 
+        list.unshift({ ...window.currentPlayerItem, progress: p, currentTime: t, watchedAt: Date.now() }); 
+      }
+      setCW(list.slice(0, 20));
+      renderCWRow();
+    }
+  }
+});
+
+/* Update openPlayer to handle resume */
+const originalOpenPlayer = openPlayer;
+openPlayer = function(url, label, cwItem) {
+  window.currentPlayerItem = cwItem || null;
+  if(cwItem && cwItem.currentTime) {
+    const sep = url.includes('?') ? '&' : '?';
+    url += `${sep}startAt=${Math.floor(cwItem.currentTime)}`;
+  }
+  originalOpenPlayer(url, label, cwItem);
+};
 </script>
 </body>
 </html>
